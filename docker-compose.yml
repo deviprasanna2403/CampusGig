@@ -1,0 +1,40 @@
+# Phase 2 scope: local PostgreSQL/PostGIS only. This is the fastest way to
+# get a correctly-configured PostGIS database without installing PostGIS
+# system packages by hand.
+#
+# The application container, Redis, Celery worker/beat, Channels, and the
+# frontend/nginx services are added in later phases. Phase 7 adds Redis for
+# Channels and Celery; the application/worker services remain deployer-owned.
+#
+# Usage: run this from the repository root (the directory this file is in).
+# It reads DB_NAME / DB_USER / DB_PASSWORD from backend/.env if you export
+# them into your shell, or falls back to the defaults below.
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: campusgig_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: campusgig_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-campusgig}
+      POSTGRES_USER: ${DB_USER:-campusgig_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change-me}
+    ports:
+      - "5432:5432"
+    volumes:
+      - campusgig_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-campusgig_user} -d ${DB_NAME:-campusgig}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  campusgig_pgdata:

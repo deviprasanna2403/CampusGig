@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment files — never commit real credentials
+.env
+.env.*.local
+
+# Django
+staticfiles/
+media/
+db.sqlite3
+
+# Celery filesystem broker data (dev-only transport)
+celery_broker/
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Scratch/test output
+test_jobs_output.txt
