@@ -40,6 +40,14 @@ export default function AppShell() {
               <NavLink to="/business/profile">Profile</NavLink>
             </nav>
           )}
+          {user?.role === "admin" && (
+            <nav className="main-nav">
+              <NavLink to="/admin" end>Overview</NavLink>
+              <NavLink to="/admin/verifications">Verifications</NavLink>
+              <NavLink to="/admin/reports">Reports</NavLink>
+              <NavLink to="/admin/audit-logs">Audit log</NavLink>
+            </nav>
+          )}
         </div>
         <div className="topbar-right">
           {user && <NotificationBell />}

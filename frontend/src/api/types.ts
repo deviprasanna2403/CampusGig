@@ -365,3 +365,29 @@ export interface AuditLog {
   metadata: Record<string, unknown>;
   created_at: string;
 }
+
+/* --- admin console (Phase F5) --------------------------------------------- */
+
+export type ReportStatus =
+  | "OPEN"
+  | "UNDER_REVIEW"
+  | "VALID"
+  | "DISMISSED"
+  | "ACTIONED";
+
+export type ReportTargetType = "JOB" | "BUSINESS" | "USER" | "APPLICATION" | "MESSAGE";
+
+export interface Report {
+  id: string;
+  reporter: string | null;
+  target_type: ReportTargetType;
+  target_id: string;
+  category: string;
+  description: string;
+  status: ReportStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  resolution_notes: string;
+  created_at: string;
+  updated_at: string;
+}

@@ -6,6 +6,9 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import Register from "./pages/Register";
 import AdminHome from "./pages/admin/AdminHome";
+import VerificationReview from "./pages/admin/VerificationReview";
+import AuditLogs from "./pages/admin/AuditLogs";
+import ReportsModeration from "./pages/admin/ReportsModeration";
 import StudentHome from "./pages/student/StudentHome";
 import JobDiscovery from "./pages/student/JobDiscovery";
 import JobDetail from "./pages/student/JobDetail";
@@ -65,6 +68,9 @@ export default function App() {
           </Route>
           <Route element={<RoleRoute allow={["admin"]} />}>
             <Route path="/admin" element={<AdminHome />} />
+            <Route path="/admin/verifications" element={<VerificationReview />} />
+            <Route path="/admin/audit-logs" element={<AuditLogs />} />
+            <Route path="/admin/reports" element={<ReportsModeration />} />
           </Route>
         </Route>
       </Route>
