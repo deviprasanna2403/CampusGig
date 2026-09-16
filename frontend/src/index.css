@@ -576,3 +576,132 @@ textarea {
 .wizard-step.done .wizard-dot { background: var(--success); border-color: var(--success); }
 
 .wizard-status { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+
+/* --- F4: recommendations, messaging, interviews, notifications ------------- */
+
+.rec-list { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 0.9rem; }
+
+.rec-card { display: flex; gap: 1rem; align-items: center; }
+.rec-score { display: flex; flex-direction: column; align-items: center; min-width: 64px; }
+.rec-main { flex: 1; min-width: 0; }
+.rec-reasons { font-size: 0.85rem; color: var(--success); font-weight: 600; margin: 0.15rem 0; }
+.rec-actions { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.messages-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1rem;
+  align-items: start;
+  min-height: 60vh;
+}
+
+.conv-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.conv-list h2 { margin-bottom: 0.3rem; }
+
+.conv-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfcff;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.conv-item:hover { background: var(--bg); }
+.conv-item.active { background: var(--primary-soft); border-color: var(--primary); }
+
+.conv-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 0.9rem; }
+
+.unread-pill {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.05rem 0.45rem;
+  min-width: 1.2rem;
+  text-align: center;
+}
+
+.thread { display: flex; flex-direction: column; height: calc(100vh - 140px); min-height: 420px; }
+.thread-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem; }
+
+.thread-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.8rem 0.2rem;
+}
+
+.bubble { max-width: 75%; border-radius: 12px; padding: 0.5rem 0.75rem; font-size: 0.92rem; }
+.bubble p { margin: 0; white-space: pre-wrap; word-break: break-word; }
+.bubble.mine { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+.bubble.theirs { align-self: flex-start; background: var(--bg); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+.bubble-meta { display: block; font-size: 0.68rem; opacity: 0.75; margin-top: 0.2rem; }
+
+.composer { display: flex; gap: 0.5rem; padding-top: 0.6rem; border-top: 1px solid var(--border); }
+.composer input { flex: 1; }
+
+.schedule-form { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
+.schedule-form label { display: flex; flex-direction: column; gap: 0.3rem; font-weight: 600; font-size: 0.88rem; }
+
+.notif-row.unread { border-left: 3px solid var(--primary); }
+
+.bell-wrap { position: relative; }
+
+.bell {
+  position: relative;
+  border: 1px solid var(--border);
+  background: #fbfcff;
+  border-radius: 8px;
+  padding: 0.3rem 0.55rem;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.bell-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--danger);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.05rem 0.35rem;
+  min-width: 1.1rem;
+  text-align: center;
+}
+
+.bell-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 320px;
+  max-height: 380px;
+  overflow-y: auto;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bell-head { display: flex; justify-content: space-between; align-items: baseline; }
+.bell-item { display: flex; justify-content: space-between; gap: 0.6rem; border-top: 1px solid var(--border); padding-top: 0.5rem; }
+.bell-title { font-weight: 600; margin: 0; font-size: 0.9rem; }
+.bell-item p { margin: 0.1rem 0; }
+
+@media (max-width: 800px) {
+  .messages-layout { grid-template-columns: 1fr; }
+  .thread { height: 60vh; }
+  .rec-card { flex-direction: column; align-items: stretch; }
+  .rec-actions { flex-direction: row; }
+}

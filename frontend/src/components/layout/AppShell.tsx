@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import NotificationBell from "./NotificationBell";
 
 /**
  * F1 shell: topbar with brand, role badge, account email, sign-out.
@@ -22,7 +23,10 @@ export default function AppShell() {
           {user?.role === "student" && (
             <nav className="main-nav">
               <NavLink to="/student/jobs">Jobs</NavLink>
+              <NavLink to="/student/recommendations">For you</NavLink>
               <NavLink to="/student/applications">Applications</NavLink>
+              <NavLink to="/messages">Messages</NavLink>
+              <NavLink to="/interviews">Interviews</NavLink>
               <NavLink to="/student/profile">Profile</NavLink>
             </nav>
           )}
@@ -30,12 +34,15 @@ export default function AppShell() {
             <nav className="main-nav">
               <NavLink to="/business/jobs" end>My jobs</NavLink>
               <NavLink to="/business/applicants">Applicants</NavLink>
+              <NavLink to="/interviews">Interviews</NavLink>
+              <NavLink to="/messages">Messages</NavLink>
               <NavLink to="/business/verification">Verification</NavLink>
               <NavLink to="/business/profile">Profile</NavLink>
             </nav>
           )}
         </div>
         <div className="topbar-right">
+          {user && <NotificationBell />}
           {user && (
             <>
               <span className={`role-badge role-${user.role}`}>{user.role}</span>

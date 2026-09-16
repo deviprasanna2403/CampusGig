@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { listBusinessApplications, updateApplicationStatus } from "../../api/applications";
+import { createConversation } from "../../api/communication";
+import { ApiError } from "../../api/client";
 import { listMyJobs } from "../../api/jobs";
 import type { ApplicationStatus } from "../../api/types";
 import ErrorState from "../../components/ErrorState";
@@ -30,6 +32,7 @@ const STATUS_OPTIONS: [ApplicationStatus | "", string][] = [
 
 export default function Applicants() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const jobFilter = params.get("job") ?? "";
   const [status, setStatus] = useState("");
@@ -54,6 +57,19 @@ export default function Applicants() {
       queryClient.invalidateQueries({ queryKey: ["business-analytics"] });
     },
     onError: (err) => setError(err instanceof Error ? err.message : "Could not update status."),
+  });
+
+  const chatM = useMutation({
+    mutationFn: createConversation,
+    onSuccess: () => navigate("/messages"),
+    onError: (err) =>
+      setError(
+        err instanceof ApiError && err.message.includes("already exists")
+          ? "Chat already open for this applicant — find it under Messages."
+          : err instanceof Error
+            ? err.message
+            : "Could not open chat.",
+      ),
   });
 
   return (
@@ -103,6 +119,11 @@ export default function Applicants() {
                   </div>
                   <div className="app-row-side">
                     <StatusBadge status={a.status} />
+                    {["SHORTLISTED", "INTERVIEW", "SELECTED"].includes(a.status) && (
+                      <button className="btn ghost" disabled={chatM.isPending} onClick={() => chatM.mutate(a.id)}>
+                        Chat
+                      </button>
+                    )}
                     {nexts.length > 0 && (
                       <div className="action-row">
                         {nexts.map((s) => (

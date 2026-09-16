@@ -17,6 +17,10 @@ import JobEditor from "./pages/business/JobEditor";
 import Applicants from "./pages/business/Applicants";
 import VerificationWizard from "./pages/business/VerificationWizard";
 import BusinessProfileEditor from "./pages/business/BusinessProfileEditor";
+import Recommendations from "./pages/student/Recommendations";
+import Messages from "./pages/shared/Messages";
+import Interviews from "./pages/shared/Interviews";
+import Notifications from "./pages/shared/Notifications";
 
 /**
  * Route architecture (F1):
@@ -39,8 +43,15 @@ export default function App() {
             <Route path="/student" element={<StudentHome />} />
             <Route path="/student/jobs" element={<JobDiscovery />} />
             <Route path="/student/jobs/:id" element={<JobDetail />} />
+            <Route path="/student/recommendations" element={<Recommendations />} />
             <Route path="/student/applications" element={<MyApplications />} />
             <Route path="/student/profile" element={<ProfileEditor />} />
+          </Route>
+          {/* Shared F4 routes: both roles reach the same thread/inbox. */}
+          <Route element={<RoleRoute allow={["student", "business"]} />}>
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/interviews" element={<Interviews />} />
+            <Route path="/notifications" element={<Notifications />} />
           </Route>
           <Route element={<RoleRoute allow={["business"]} />}>
             <Route path="/business" element={<BusinessHome />} />

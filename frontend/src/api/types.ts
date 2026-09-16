@@ -265,6 +265,93 @@ export interface StudentAnalytics {
   timeseries: { applications_submitted: TimeseriesPoint[] };
 }
 
+/* --- matching (Phase 7) --------------------------------------------------- */
+
+export interface MatchComponents {
+  skill: string;
+  location: string;
+  availability: string;
+  experience: string;
+}
+
+export interface Recommendation {
+  job: Job;
+  match_score: string;
+  recommendation_score: number;
+  match_components: MatchComponents;
+  recommendation_reasons: string[];
+}
+
+export interface JobMatch {
+  id: string;
+  job: Job;
+  score: string;
+  components: MatchComponents;
+  explanation: string;
+  strategy: string;
+  calculated_at: string;
+}
+
+export interface StudentPreference {
+  id: string;
+  preferred_category_ids: string[];
+  preferred_job_types: string[];
+  preferred_payment_types: string[];
+  minimum_payment: string | null;
+  maximum_payment: string | null;
+  maximum_distance_km: number | null;
+}
+
+/* --- communication (Phase 7) ---------------------------------------------- */
+
+export interface Conversation {
+  id: string;
+  other_party: string;
+  is_active: boolean;
+  unread_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Message {
+  id: string;
+  conversation: string;
+  sender: string;
+  body: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+/* --- interviews (Phase 7) -------------------------------------------------- */
+
+export type InterviewStatus = "SCHEDULED" | "CONFIRMED" | "DECLINED" | "COMPLETED" | "CANCELLED";
+
+export interface Interview {
+  id: string;
+  proposed_by: string;
+  starts_at: string;
+  ends_at: string;
+  timezone_name: string | null;
+  meeting_url: string;
+  notes: string;
+  status: InterviewStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+/* --- notifications (Phase 7) ------------------------------------------------ */
+
+export interface NotificationRow {
+  id: string;
+  event: string;
+  title: string;
+  body: string;
+  payload: Record<string, string>;
+  read_at: string | null;
+  email_sent_at: string | null;
+  created_at: string;
+}
+
 /* --- audit logs (Phase 9B, admin-only, GET-only) -------------------------- */
 
 export interface AuditLog {

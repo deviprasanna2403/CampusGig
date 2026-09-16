@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getJob } from "../../api/jobs";
 import { applyToJob } from "../../api/applications";
+import { trackEngagement } from "../../api/matching";
+import { useAuth } from "../../auth/AuthContext";
 import { ApiError } from "../../api/client";
 import ErrorState from "../../components/ErrorState";
 import StatusBadge from "../../components/jobs/StatusBadge";
@@ -11,8 +13,16 @@ export default function JobDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [coverNote, setCoverNote] = useState("");
   const [applyError, setApplyError] = useState<string | null>(null);
+
+  // Fire-and-forget engagement signal for matching (Phase 7); failures ignored.
+  useEffect(() => {
+    if (user?.role === "student" && id) {
+      trackEngagement(id, "VIEWED").catch(() => undefined);
+    }
+  }, [user?.role, id]);
 
   const jobQ = useQuery({
     queryKey: ["job", id],
