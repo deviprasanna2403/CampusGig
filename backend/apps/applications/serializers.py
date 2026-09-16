@@ -16,11 +16,21 @@ class ApplicationSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "student", "status", "submitted_at", "created_at", "updated_at"]
 
     def validate(self, attrs):
+        # get_or_create matches the lazy-profile convention used across the
+        # project (no signals; profiles appear on first use).
         student, _ = StudentProfile.objects.get_or_create(user=self.context["request"].user)
-        job = attrs["job"]
-        if Application.objects.filter(student=student, job=job).exists():
-            raise serializers.ValidationError({"job_id": "You have already applied to this job."})
-        attrs["_student"] = student
+        # `job` is only present on creation (job_id is write-only and a PATCH
+        # omits it). Guarding with .get() instead of attrs["job"] fixes a
+        # pre-existing KeyError (HTTP 500) on every student PATCH.
+        job = attrs.get("job")
+        if job is not None:
+            duplicates = Application.objects.filter(student=student, job=job)
+            if self.instance is not None:
+                duplicates = duplicates.exclude(pk=self.instance.pk)
+            if duplicates.exists():
+                raise serializers.ValidationError({"job_id": "You have already applied to this job."})
+        if self.instance is None:
+            attrs["_student"] = student
         return attrs
 
     def create(self, validated_data):

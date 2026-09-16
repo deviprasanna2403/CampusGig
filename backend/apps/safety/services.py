@@ -10,6 +10,7 @@ from apps.notifications.services import create_notification
 
 from apps.accounts.models import User
 from apps.applications.models import Application
+from apps.core.audit import AuditService
 from apps.jobs.models import Job
 from apps.safety.models import (
     BusinessVerification,
@@ -93,6 +94,20 @@ class VerificationService:
             user = verification.business.user
             user.is_verified = verification.status == BusinessVerification.Status.VERIFIED
             user.save(update_fields=["is_verified"])
+            # Phase 9B: also record the decision on the *generic* audit
+            # trail. VerificationHistory remains the verification-specific
+            # record; this row only references it via metadata — nothing
+            # is duplicated.
+            AuditService.log(
+                action="verification.review",
+                actor=changed_by,
+                target=verification,
+                metadata={
+                    "verification_id": str(verification.id),
+                    "from_status": old_status,
+                    "to_status": verification.status,
+                },
+            )
         self._notify(verification, old_status=old_status)
         return verification
 

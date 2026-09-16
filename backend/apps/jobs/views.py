@@ -11,6 +11,7 @@ from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsAdminRole, IsBusiness, IsStudent, IsVerified
+from apps.core.audit import AuditService
 from apps.jobs.models import Job, JobCategory
 from apps.jobs.permissions import IsBusinessOwnerOrAdmin
 from apps.jobs.serializers import JobCategorySerializer, JobSerializer
@@ -200,8 +201,16 @@ class JobViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "data": None, "error": {"code": 400, "message": "Only draft jobs can be published.", "details": None}}, status=400)
         if not job.is_publish_ready():
             return Response({"success": False, "data": None, "error": {"code": 400, "message": "This job is incomplete and cannot be published.", "details": None}}, status=400)
+        old_status = job.status
         job.status = Job.Status.PUBLISHED
         job.save(update_fields=["status", "updated_at"])
+        AuditService.log(
+            action="job.publish",
+            actor=request.user,
+            target=job,
+            metadata={"title": job.title, "from_status": old_status, "to_status": job.status},
+            request=request,
+        )
         serializer = self.get_serializer(job)
         return Response(serializer.data)
 
@@ -212,8 +221,16 @@ class JobViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "data": None, "error": {"code": 403, "message": "You do not have permission to close this job.", "details": None}}, status=403)
         if job.status not in {Job.Status.PUBLISHED, Job.Status.OPEN, Job.Status.FULL}:
             return Response({"success": False, "data": None, "error": {"code": 400, "message": "Only published/open/full jobs can be closed.", "details": None}}, status=400)
+        old_status = job.status
         job.status = Job.Status.CLOSED
         job.save(update_fields=["status", "updated_at"])
+        AuditService.log(
+            action="job.close",
+            actor=request.user,
+            target=job,
+            metadata={"title": job.title, "from_status": old_status, "to_status": job.status},
+            request=request,
+        )
         serializer = self.get_serializer(job)
         return Response(serializer.data)
 
@@ -224,8 +241,16 @@ class JobViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "data": None, "error": {"code": 403, "message": "You do not have permission to cancel this job.", "details": None}}, status=403)
         if job.status in {Job.Status.CANCELLED, Job.Status.EXPIRED}:
             return Response({"success": False, "data": None, "error": {"code": 400, "message": "This job cannot be cancelled from its current status.", "details": None}}, status=400)
+        old_status = job.status
         job.status = Job.Status.CANCELLED
         job.save(update_fields=["status", "updated_at"])
+        AuditService.log(
+            action="job.cancel",
+            actor=request.user,
+            target=job,
+            metadata={"title": job.title, "from_status": old_status, "to_status": job.status},
+            request=request,
+        )
         for application in job.applications.select_related("student__user"):
             create_notification(
                 recipient=application.student.user,
@@ -244,8 +269,16 @@ class JobViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "data": None, "error": {"code": 403, "message": "You do not have permission to reopen this job.", "details": None}}, status=403)
         if job.status not in {Job.Status.CLOSED, Job.Status.FULL}:
             return Response({"success": False, "data": None, "error": {"code": 400, "message": "Only closed or full jobs can be reopened.", "details": None}}, status=400)
+        old_status = job.status
         job.status = Job.Status.OPEN
         job.save(update_fields=["status", "updated_at"])
+        AuditService.log(
+            action="job.reopen",
+            actor=request.user,
+            target=job,
+            metadata={"title": job.title, "from_status": old_status, "to_status": job.status},
+            request=request,
+        )
         serializer = self.get_serializer(job)
         return Response(serializer.data)
 

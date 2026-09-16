@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from apps.accounts.models import User
 from apps.accounts.permissions import IsAdminRole, IsBusiness, IsStudent
 from apps.applications.models import Application
+from apps.core.audit import AuditService
 from apps.profiles.models import BusinessProfile
 from apps.safety.models import BusinessVerification, Report, Review, RiskAssessment, TrustScoreSnapshot
 from apps.safety.permissions import IsReportOwnerOrAdmin
@@ -141,11 +142,24 @@ class ReportAdminReviewView(generics.UpdateAPIView):
         report = self.get_object()
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        old_status = report.status
         report.status = serializer.validated_data["status"]
         report.resolution_notes = serializer.validated_data.get("resolution_notes", "")
         report.reviewed_by = request.user
         report.reviewed_at = timezone.now()
         report.save(update_fields=["status", "resolution_notes", "reviewed_by", "reviewed_at", "updated_at"])
+        AuditService.log(
+            action="report.review",
+            actor=request.user,
+            target=report,
+            metadata={
+                "from_status": old_status,
+                "to_status": report.status,
+                "target_type": report.target_type,
+                "target_id": str(report.target_id),
+            },
+            request=request,
+        )
         return Response(ReportSerializer(report).data)
 
 

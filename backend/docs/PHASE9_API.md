@@ -139,6 +139,11 @@ business can now `POST /api/v1/jobs/jobs/{id}/publish/`. See
 All checks reuse `apps.accounts.permissions` (`IsBusiness`,
 `IsAdminRole`) — no new permission classes were introduced.
 
+> **Phase 9B note:** verification decisions additionally appear on the
+> generic platform audit trail (`GET /api/v1/audit/logs/`, admin-only) as
+> `verification.review` rows whose metadata carries the `verification_id`.
+> See `docs/PHASE9B_API.md`.
+
 ## Known gaps / to-fix
 
 **None currently open.** Deferred by design (out of Phase 9 scope):
