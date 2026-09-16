@@ -119,10 +119,11 @@ export interface Job {
 
 export type ApplicationStatus =
   | "SUBMITTED"
+  | "SHORTLISTED"
+  | "INTERVIEW"
   | "SELECTED"
   | "REJECTED"
-  | "WITHDRAWN"
-  | "COMPLETED";
+  | "WITHDRAWN";
 
 export interface Application {
   id: string;
@@ -170,6 +171,46 @@ export interface AvailabilityRow {
   end_time: string;
   is_active: boolean;
   created_at: string;
+}
+
+/* --- business profile (Phase 4) ------------------------------------------- */
+
+export interface BusinessProfileFull {
+  id: string;
+  email: string;
+  business_name: string;
+  description: string;
+  website: string;
+  industry: string;
+  campus: Campus | null;
+  campus_id?: string | null; // write-only on the API; echoed in campus
+  completion_percentage: number;
+  is_complete: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/* --- business verification (Phase 8/9A) ----------------------------------- */
+
+export type VerificationStatus =
+  | "SUBMITTED"
+  | "UNDER_REVIEW"
+  | "VERIFIED"
+  | "REJECTED"
+  | "REVOKED";
+
+export interface BusinessVerification {
+  id: string;
+  business: string;
+  status: VerificationStatus;
+  legal_name: string;
+  registration_reference: string;
+  evidence: Record<string, string>;
+  review_notes: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /* --- analytics (Phase 9B) ------------------------------------------------ */

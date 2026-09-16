@@ -56,3 +56,55 @@ export async function listCategories(): Promise<JobCategory[]> {
   });
   return data.results;
 }
+
+/* --- business-side management (Phase F3) ----------------------------------
+ * Shapes verified against apps/jobs/serializers.py:
+ * - category_id is a write-only UUID PK; required_skill_ids is a write-only
+ *   many=true PK array on Skill; location_latitude/longitude are read-write
+ *   (folded into the PostGIS Point server-side); status is read-only —
+ *   jobs are created as DRAFT and moved via the lifecycle actions.
+ */
+
+export interface JobInput {
+  title: string;
+  description: string;
+  category_id: string;
+  job_type: string;
+  required_skill_ids?: string[];
+  location_latitude: number;
+  location_longitude: number;
+  start_date: string;
+  end_date: string;
+  start_time: string;
+  end_time: string;
+  payment_amount: string;
+  payment_type: string;
+  workers_required: number;
+  application_deadline: string;
+  eligibility_notes: string;
+}
+
+export async function listMyJobs(params?: {
+  status?: string;
+  page?: number;
+}): Promise<Paginated<Job>> {
+  const { data } = await api.get<Paginated<Job>>("/jobs/jobs/", { params });
+  return data;
+}
+
+export async function createJob(input: JobInput): Promise<Job> {
+  const { data } = await api.post<Job>("/jobs/jobs/", input);
+  return data;
+}
+
+export async function updateJob(id: string, patch: Partial<JobInput>): Promise<Job> {
+  const { data } = await api.patch<Job>(`/jobs/jobs/${id}/`, patch);
+  return data;
+}
+
+export type JobAction = "publish" | "close" | "cancel" | "reopen";
+
+export async function jobAction(id: string, action: JobAction): Promise<Job> {
+  const { data } = await api.post<Job>(`/jobs/jobs/${id}/${action}/`);
+  return data;
+}

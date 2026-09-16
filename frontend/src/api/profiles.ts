@@ -9,7 +9,15 @@
  */
 
 import { api, getPaginated } from "./client";
-import type { AvailabilityRow, Campus, Paginated, Skill, StudentProfileFull, StudentSkillRow } from "./types";
+import type {
+  AvailabilityRow,
+  BusinessProfileFull,
+  Campus,
+  Paginated,
+  Skill,
+  StudentProfileFull,
+  StudentSkillRow,
+} from "./types";
 
 export async function getMyStudentProfile(): Promise<StudentProfileFull> {
   const { data } = await api.get<StudentProfileFull>("/profiles/students/me/");
@@ -29,6 +37,23 @@ export async function listCampuses(): Promise<Campus[]> {
     params: { page_size: 200 },
   });
   return data.results;
+}
+
+/* --- business profile (Phase F3) ------------------------------------------ */
+
+export async function getMyBusinessProfile(): Promise<BusinessProfileFull> {
+  // Lazily creates the profile server-side on first access.
+  const { data } = await api.get<BusinessProfileFull>("/profiles/business/me/");
+  return data;
+}
+
+export async function updateMyBusinessProfile(
+  patch: Partial<
+    Pick<BusinessProfileFull, "business_name" | "description" | "website" | "industry" | "campus_id">
+  >,
+): Promise<BusinessProfileFull> {
+  const { data } = await api.patch<BusinessProfileFull>("/profiles/business/me/", patch);
+  return data;
 }
 
 export async function listSkills(): Promise<Skill[]> {

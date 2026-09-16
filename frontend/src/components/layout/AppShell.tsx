@@ -26,6 +26,14 @@ export default function AppShell() {
               <NavLink to="/student/profile">Profile</NavLink>
             </nav>
           )}
+          {user?.role === "business" && (
+            <nav className="main-nav">
+              <NavLink to="/business/jobs" end>My jobs</NavLink>
+              <NavLink to="/business/applicants">Applicants</NavLink>
+              <NavLink to="/business/verification">Verification</NavLink>
+              <NavLink to="/business/profile">Profile</NavLink>
+            </nav>
+          )}
         </div>
         <div className="topbar-right">
           {user && (

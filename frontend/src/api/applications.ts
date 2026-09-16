@@ -33,3 +33,42 @@ export async function withdrawApplication(id: string): Promise<ApplicationRow> {
   const { data } = await api.patch<ApplicationRow>(`/applications/student/${id}/withdraw/`, {});
   return data;
 }
+
+/* --- business-side (Phase F3) ---------------------------------------------
+ * BusinessApplicationSerializer shape: { id, job (title), student (email),
+ * cover_note, status, submitted_at, created_at, updated_at } — no job_id,
+ * so per-job filtering is done server-side via the ?job=<uuid> param.
+ * Businesses cannot set WITHDRAWN (backend validates this).
+ */
+
+export interface BusinessApplicationRow {
+  id: string;
+  job: string;
+  student: string;
+  cover_note: string;
+  status: ApplicationStatus;
+  submitted_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listBusinessApplications(params?: {
+  job?: string;
+  status?: string;
+  page?: number;
+}): Promise<Paginated<BusinessApplicationRow>> {
+  const { data } = await api.get<Paginated<BusinessApplicationRow>>("/applications/business/", {
+    params,
+  });
+  return data;
+}
+
+export async function updateApplicationStatus(
+  id: string,
+  status: ApplicationStatus,
+): Promise<BusinessApplicationRow> {
+  const { data } = await api.patch<BusinessApplicationRow>(`/applications/business/${id}/`, {
+    status,
+  });
+  return data;
+}

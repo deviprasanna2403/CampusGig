@@ -6,12 +6,17 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import Register from "./pages/Register";
 import AdminHome from "./pages/admin/AdminHome";
-import BusinessHome from "./pages/business/BusinessHome";
 import StudentHome from "./pages/student/StudentHome";
 import JobDiscovery from "./pages/student/JobDiscovery";
 import JobDetail from "./pages/student/JobDetail";
 import MyApplications from "./pages/student/MyApplications";
 import ProfileEditor from "./pages/student/ProfileEditor";
+import BusinessHome from "./pages/business/BusinessHome";
+import MyJobs from "./pages/business/MyJobs";
+import JobEditor from "./pages/business/JobEditor";
+import Applicants from "./pages/business/Applicants";
+import VerificationWizard from "./pages/business/VerificationWizard";
+import BusinessProfileEditor from "./pages/business/BusinessProfileEditor";
 
 /**
  * Route architecture (F1):
@@ -39,6 +44,13 @@ export default function App() {
           </Route>
           <Route element={<RoleRoute allow={["business"]} />}>
             <Route path="/business" element={<BusinessHome />} />
+            <Route path="/business/jobs" element={<MyJobs />} />
+            <Route path="/business/jobs/new" element={<JobEditor />} />
+            <Route path="/business/jobs/:id/edit" element={<JobEditor />} />
+            <Route path="/business/jobs/:id/applicants" element={<Applicants />} />
+            <Route path="/business/applicants" element={<Applicants />} />
+            <Route path="/business/verification" element={<VerificationWizard />} />
+            <Route path="/business/profile" element={<BusinessProfileEditor />} />
           </Route>
           <Route element={<RoleRoute allow={["admin"]} />}>
             <Route path="/admin" element={<AdminHome />} />

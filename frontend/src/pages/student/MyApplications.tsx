@@ -10,10 +10,11 @@ import StatusBadge from "../../components/jobs/StatusBadge";
 const STATUS_OPTIONS: [ApplicationStatus | "", string][] = [
   ["", "All statuses"],
   ["SUBMITTED", "Submitted"],
+  ["SHORTLISTED", "Shortlisted"],
+  ["INTERVIEW", "Interview"],
   ["SELECTED", "Selected"],
   ["REJECTED", "Rejected"],
   ["WITHDRAWN", "Withdrawn"],
-  ["COMPLETED", "Completed"],
 ];
 
 export default function MyApplications() {

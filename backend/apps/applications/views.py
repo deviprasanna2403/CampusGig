@@ -97,6 +97,10 @@ class BusinessApplicationListView(generics.ListAPIView):
         status_value = self.request.query_params.get("status")
         if status_value:
             queryset = queryset.filter(status=status_value.upper())
+        job_id = self.request.query_params.get("job")
+        if job_id:
+            # Phase F3: per-job applicants view (invalid UUIDs simply match nothing).
+            queryset = queryset.filter(job_id=job_id)
         return queryset
 
 
