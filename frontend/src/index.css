@@ -1,0 +1,256 @@
+/* CampusGig design tokens + base components (F1). Mobile-first. */
+
+:root {
+  --bg: #f6f7fb;
+  --surface: #ffffff;
+  --text: #16213a;
+  --text-muted: #5b6579;
+  --border: #e3e7f0;
+  --primary: #3d5afe;
+  --primary-strong: #2f46d4;
+  --primary-soft: #e8ecff;
+  --danger: #d64545;
+  --danger-soft: #fdecec;
+  --success: #1e9e6a;
+  --success-soft: #e7f7f0;
+  --warn: #b97d10;
+  --warn-soft: #fdf3e0;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgb(22 33 58 / 0.08), 0 4px 14px rgb(22 33 58 / 0.06);
+  --font: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1 { font-size: 1.45rem; margin: 0 0 0.5rem; }
+h2 { font-size: 1.15rem; margin: 0 0 0.5rem; }
+p { margin: 0.35rem 0; }
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.muted { color: var(--text-muted); }
+.small { font-size: 0.85rem; }
+.center { text-align: center; }
+
+/* --- cards & pages ------------------------------------------------------ */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+}
+
+.page-loading {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+  color: var(--text-muted);
+}
+
+.note {
+  background: var(--warn-soft);
+  color: var(--warn);
+  border: 1px solid rgb(185 125 16 / 0.25);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+  font-size: 0.9rem;
+}
+
+/* --- auth pages ---------------------------------------------------------- */
+
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 2rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.brand {
+  color: var(--primary-strong);
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.brand.small { font-size: 1.05rem; }
+
+.auth-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+input {
+  font: inherit;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfcff;
+  color: var(--text);
+}
+
+input:focus {
+  outline: 2px solid var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.form-error {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid rgb(214 69 69 / 0.3);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.88rem;
+}
+
+.field-error {
+  color: var(--danger);
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.role-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.role-option {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fbfcff;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.role-option.selected {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+
+/* --- buttons ------------------------------------------------------------- */
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn.primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn.primary:hover:not(:disabled) { background: var(--primary-strong); }
+
+.btn.ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+.btn.ghost:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+
+/* --- app shell ------------------------------------------------------------ */
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.65rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.user-email {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 999px;
+  padding: 0.18rem 0.6rem;
+}
+
+.role-student { background: var(--primary-soft); color: var(--primary-strong); }
+.role-business { background: var(--success-soft); color: var(--success); }
+.role-admin { background: var(--warn-soft); color: var(--warn); }
+
+.app-main {
+  flex: 1;
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+/* --- small screens -------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .app-main { padding: 1rem 0.75rem; }
+  .user-email { display: none; }
+  .auth-card { padding: 1.5rem 1.25rem; }
+}

@@ -49,6 +49,9 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     # OpenAPI/Swagger schema generation (Phase 3)
     "drf_spectacular",
+    # CORS for the React frontend (Phase F1) — the Vite dev server proxies
+    # /api in development; this matters for cross-origin deployments.
+    "corsheaders",
     # CampusGig apps
     "apps.core",
     "apps.accounts",
@@ -67,6 +70,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # django-cors-headers must run before anything that can produce a
+    # response (its documented requirement) — handles preflights + headers.
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -258,6 +264,14 @@ SIMPLE_JWT = {
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
 }
+
+# ---------------------------------------------------------------------------
+# CORS (React frontend, Phase F1)
+# ---------------------------------------------------------------------------
+# Deliberately empty in base: production should be same-origin or proxied.
+# Environment-specific settings extend CORS_ALLOWED_ORIGINS (see dev.py).
+CORS_ALLOWED_ORIGINS = []
+CORS_ALLOW_CREDENTIALS = False
 
 # ---------------------------------------------------------------------------
 # drf-spectacular (OpenAPI / Swagger)

@@ -27,5 +27,14 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Node / React frontend
+node_modules/
+frontend/dist/
+*.local
+npm-debug.log*
+
+# Dev server / smoke-test logs
+*.log
+
 # Scratch/test output
 test_jobs_output.txt
