@@ -96,18 +96,20 @@ export interface Job {
   description: string;
   category: JobCategory | null;
   job_type: string;
-  payment_type: string;
-  payment_amount: string;
+  required_skills: { id: string; name: string }[];
   location_latitude: number | null;
   location_longitude: number | null;
   start_date: string;
   end_date: string;
   start_time: string;
   end_time: string;
+  payment_amount: string;
+  payment_type: string;
   workers_required: number;
   application_deadline: string;
   eligibility_notes: string;
   status: JobStatus;
+  /** Business owner's account email (serializer method field). */
   business: string;
   created_at: string;
   updated_at: string;
@@ -132,6 +134,42 @@ export interface Application {
   submitted_at: string;
   created_at: string;
   updated_at: string;
+}
+
+/* --- student profile (Phase 4) ------------------------------------------- */
+
+export interface StudentProfileFull {
+  id: string;
+  email: string;
+  full_name: string;
+  campus: Campus | null;
+  campus_id?: string | null; // write-only on the API; echoed in campus
+  year_of_study: number | null;
+  bio: string;
+  resume_headline: string;
+  skills: StudentSkillRow[];
+  availability: AvailabilityRow[];
+  completion_percentage: number;
+  is_complete: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudentSkillRow {
+  id: string;
+  skill: Skill;
+  proficiency: string;
+  years_of_experience: number | null;
+  created_at: string;
+}
+
+export interface AvailabilityRow {
+  id: string;
+  day_of_week: number; // 0=Monday .. 6=Sunday (backend IntegerChoices)
+  start_time: string;
+  end_time: string;
+  is_active: boolean;
+  created_at: string;
 }
 
 /* --- analytics (Phase 9B) ------------------------------------------------ */

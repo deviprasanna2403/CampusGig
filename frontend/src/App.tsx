@@ -8,6 +8,10 @@ import Register from "./pages/Register";
 import AdminHome from "./pages/admin/AdminHome";
 import BusinessHome from "./pages/business/BusinessHome";
 import StudentHome from "./pages/student/StudentHome";
+import JobDiscovery from "./pages/student/JobDiscovery";
+import JobDetail from "./pages/student/JobDetail";
+import MyApplications from "./pages/student/MyApplications";
+import ProfileEditor from "./pages/student/ProfileEditor";
 
 /**
  * Route architecture (F1):
@@ -28,6 +32,10 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route element={<RoleRoute allow={["student"]} />}>
             <Route path="/student" element={<StudentHome />} />
+            <Route path="/student/jobs" element={<JobDiscovery />} />
+            <Route path="/student/jobs/:id" element={<JobDetail />} />
+            <Route path="/student/applications" element={<MyApplications />} />
+            <Route path="/student/profile" element={<ProfileEditor />} />
           </Route>
           <Route element={<RoleRoute allow={["business"]} />}>
             <Route path="/business" element={<BusinessHome />} />

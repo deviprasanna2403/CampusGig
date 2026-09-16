@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 
 /**
@@ -17,7 +17,16 @@ export default function AppShell() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <span className="brand small">CampusGig</span>
+        <div className="topbar-left">
+          <Link to="/redirect" className="brand small">CampusGig</Link>
+          {user?.role === "student" && (
+            <nav className="main-nav">
+              <NavLink to="/student/jobs">Jobs</NavLink>
+              <NavLink to="/student/applications">Applications</NavLink>
+              <NavLink to="/student/profile">Profile</NavLink>
+            </nav>
+          )}
+        </div>
         <div className="topbar-right">
           {user && (
             <>
