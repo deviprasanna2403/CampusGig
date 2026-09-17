@@ -15,8 +15,8 @@ from apps.safety.models import BusinessVerification, Report, Review, RiskAssessm
 from apps.safety.permissions import IsReportOwnerOrAdmin
 from apps.safety.serializers import (
     BusinessVerificationSerializer, ReportReviewSerializer, ReportSerializer,
-    ReviewSerializer, RiskAssessmentSerializer, TrustScoreSerializer,
-    VerificationRevokeSerializer, VerificationReviewSerializer,
+    ReviewModerationSerializer, ReviewSerializer, RiskAssessmentSerializer,
+    TrustScoreSerializer, VerificationRevokeSerializer, VerificationReviewSerializer,
 )
 from apps.safety.services import RiskService, SafetyScoreService, VerificationService
 
@@ -148,6 +148,7 @@ class ReportAdminReviewView(generics.UpdateAPIView):
         report.reviewed_by = request.user
         report.reviewed_at = timezone.now()
         report.save(update_fields=["status", "resolution_notes", "reviewed_by", "reviewed_at", "updated_at"])
+        takedown = self._maybe_takedown_job(report, old_status)
         AuditService.log(
             action="report.review",
             actor=request.user,
@@ -157,10 +158,43 @@ class ReportAdminReviewView(generics.UpdateAPIView):
                 "to_status": report.status,
                 "target_type": report.target_type,
                 "target_id": str(report.target_id),
+                "job_taken_down": takedown is not None,
             },
             request=request,
         )
         return Response(ReportSerializer(report).data)
+
+    @staticmethod
+    def _maybe_takedown_job(report, old_status):
+        """F6 polish: an ACTIONED JOB report now removes the offending job
+        from discovery (CANCELLED) instead of being bookkeeping only.
+
+        Runs once per report — an admin re-reviewing an already-ACTIONED
+        report, or re-taking it, must not repeatedly flip the job's status
+        (the owner may legitimately have reopened it since). Business and
+        student are notified; any notification/mail failure must not roll
+        back the review decision.
+        """
+        from apps.jobs.models import Job
+        from apps.notifications.services import notify_job_taken_down
+
+        if (
+            report.status != Report.Status.ACTIONED
+            or old_status == Report.Status.ACTIONED
+            or report.target_type != Report.TargetType.JOB
+        ):
+            return None
+        job = Job.objects.filter(pk=report.target_id).first()
+        if job is None or job.status == Job.Status.CANCELLED:
+            return None
+        old_job_status = job.status
+        job.status = Job.Status.CANCELLED
+        job.save(update_fields=["status", "updated_at"])
+        try:
+            notify_job_taken_down(job, report)
+        except Exception:
+            pass
+        return old_job_status
 
 
 class ReviewListCreateView(generics.ListCreateAPIView):
@@ -174,6 +208,51 @@ class ReviewListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save()
+
+
+class ReviewAdminListView(generics.ListAPIView):
+    """F6: admin moderation queue — every review, any status."""
+
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        queryset = Review.objects.select_related("reviewer", "reviewee", "application__job").order_by("-created_at")
+        status_value = self.request.query_params.get("status")
+        if status_value:
+            queryset = queryset.filter(status=status_value.upper())
+        return queryset
+
+
+class ReviewAdminStatusView(generics.UpdateAPIView):
+    """F6: hide or restore a review. Requires review_notes, is audited,
+    and is idempotent (re-hiding a HIDDEN review is a no-op 200)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    serializer_class = ReviewModerationSerializer
+    queryset = Review.objects.all()
+
+    def update(self, request, *args, **kwargs):
+        review = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        old_status = review.status
+        new_status = serializer.validated_data["status"]
+        if old_status != new_status:
+            review.status = new_status
+            review.save(update_fields=["status", "updated_at"])
+            AuditService.log(
+                action="review.moderate",
+                actor=request.user,
+                target=review,
+                metadata={
+                    "from_status": old_status,
+                    "to_status": new_status,
+                    "review_notes": serializer.validated_data.get("review_notes", ""),
+                },
+                request=request,
+            )
+        return Response(ReviewSerializer(review).data)
 
 
 class MyTrustScoreView(generics.RetrieveAPIView):

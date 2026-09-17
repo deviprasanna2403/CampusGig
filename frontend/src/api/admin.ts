@@ -11,7 +11,7 @@
  */
 
 import { api, getPaginated } from "./client";
-import type { AdminAnalytics, AuditLog, BusinessVerification, Report, ReportStatus } from "./types";
+import type { AdminAnalytics, AuditLog, BusinessVerification, Report, ReportStatus, ReviewRow, ReviewStatus } from "./types";
 
 /* --- analytics ------------------------------------------------------------ */
 
@@ -81,5 +81,28 @@ export interface ReportReviewInput {
 
 export async function reviewReport(id: string, input: ReportReviewInput): Promise<Report> {
   const { data } = await api.patch<Report>(`/safety/admin/reports/${id}/review/`, input);
+  return data;
+}
+
+/* --- review moderation (F6) ------------------------------------------------ */
+
+export interface ReviewQuery {
+  status?: ReviewStatus;
+  page?: number;
+}
+
+export function listAllReviews(query: ReviewQuery = {}) {
+  return getPaginated<ReviewRow>("/safety/admin/reviews/", { ...query });
+}
+
+export async function setReviewStatus(
+  id: string,
+  status: "HIDDEN" | "PUBLISHED",
+  review_notes: string,
+): Promise<ReviewRow> {
+  const { data } = await api.patch<ReviewRow>(`/safety/admin/reviews/${id}/status/`, {
+    status,
+    review_notes,
+  });
   return data;
 }

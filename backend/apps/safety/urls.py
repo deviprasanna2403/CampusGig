@@ -3,7 +3,8 @@ from django.urls import path
 from apps.safety.views import (
     BusinessVerificationView, JobRiskCalculateView, MyTrustScoreView,
     ReportAdminReviewView, ReportDetailView, ReportListCreateView,
-    ReviewListCreateView, RiskAssessmentView, VerificationAdminListView,
+    ReviewAdminListView, ReviewAdminStatusView, ReviewListCreateView,
+    RiskAssessmentView, VerificationAdminListView,
     VerificationAdminRevokeView, VerificationAdminReviewView,
 )
 
@@ -18,6 +19,8 @@ urlpatterns = [
     path("reports/<uuid:pk>/", ReportDetailView.as_view(), name="report-detail"),
     path("admin/reports/<uuid:pk>/review/", ReportAdminReviewView.as_view(), name="report-admin-review"),
     path("reviews/<uuid:user_id>/", ReviewListCreateView.as_view(), name="review-list"),
+    path("admin/reviews/", ReviewAdminListView.as_view(), name="review-admin-list"),
+    path("admin/reviews/<uuid:pk>/status/", ReviewAdminStatusView.as_view(), name="review-admin-status"),
     path("trust/me/", MyTrustScoreView.as_view(), name="trust-me"),
     path("admin/risk/<uuid:pk>/", RiskAssessmentView.as_view(), name="risk-detail"),
     path("admin/risk/jobs/<uuid:job_id>/calculate/", JobRiskCalculateView.as_view(), name="risk-job-calculate"),

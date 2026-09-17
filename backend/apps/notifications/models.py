@@ -16,6 +16,7 @@ class Notification(TimeStampedModel):
         SELECTED = "SELECTED", _("Selected")
         REJECTED = "REJECTED", _("Rejected")
         JOB_CANCELLED = "JOB_CANCELLED", _("Job cancelled")
+        JOB_TAKEN_DOWN = "JOB_TAKEN_DOWN", _("Job taken down after a report")
         JOB_DEADLINE_REMINDER = "JOB_DEADLINE_REMINDER", _("Job deadline reminder")
         NEW_APPLICATION = "NEW_APPLICATION", _("New application")
         APPLICATION_WITHDRAWN = "APPLICATION_WITHDRAWN", _("Application withdrawn")

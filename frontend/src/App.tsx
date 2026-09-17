@@ -9,6 +9,7 @@ import AdminHome from "./pages/admin/AdminHome";
 import VerificationReview from "./pages/admin/VerificationReview";
 import AuditLogs from "./pages/admin/AuditLogs";
 import ReportsModeration from "./pages/admin/ReportsModeration";
+import ReviewModeration from "./pages/admin/ReviewModeration";
 import StudentHome from "./pages/student/StudentHome";
 import JobDiscovery from "./pages/student/JobDiscovery";
 import JobDetail from "./pages/student/JobDetail";
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="/admin/verifications" element={<VerificationReview />} />
             <Route path="/admin/audit-logs" element={<AuditLogs />} />
             <Route path="/admin/reports" element={<ReportsModeration />} />
+            <Route path="/admin/reviews" element={<ReviewModeration />} />
           </Route>
         </Route>
       </Route>

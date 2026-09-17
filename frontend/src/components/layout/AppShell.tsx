@@ -45,6 +45,7 @@ export default function AppShell() {
               <NavLink to="/admin" end>Overview</NavLink>
               <NavLink to="/admin/verifications">Verifications</NavLink>
               <NavLink to="/admin/reports">Reports</NavLink>
+              <NavLink to="/admin/reviews">Reviews</NavLink>
               <NavLink to="/admin/audit-logs">Audit log</NavLink>
             </nav>
           )}

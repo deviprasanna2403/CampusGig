@@ -5,6 +5,23 @@ from django.utils import timezone
 from apps.notifications.models import Notification
 
 
+def format_interview_time(starts_at, tz_name=None):
+    """Human-readable interview time for notification bodies.
+
+    Renders in the interview's timezone (falling back to the project
+    TIME_ZONE), e.g. "20 Sep 2026, 09:00 IST" — replacing the raw ISO
+    timestamps the F4 UI used to surface (F6 polish item).
+    """
+    from zoneinfo import ZoneInfo
+
+    zone = tz_name or settings.TIME_ZONE
+    try:
+        local = starts_at.astimezone(ZoneInfo(zone))
+    except Exception:
+        local = timezone.localtime(starts_at)
+    return f"{local.strftime('%d %b %Y, %H:%M')} {local.strftime('%Z') or zone}".strip()
+
+
 def create_notification(*, recipient, event, title, body, payload=None, send_email=True):
     notification = Notification.objects.create(
         recipient=recipient,
@@ -65,14 +82,31 @@ def notify_application_withdrawn(application):
     )
 
 
+def notify_job_taken_down(job, report):
+    """F6: a report against this job was ACTIONED — the job is removed
+    from discovery (CANCELLED). Notifies the business owner; admins get
+    the audit trail instead of an in-app notification."""
+    return create_notification(
+        recipient=job.business.user,
+        event=Notification.Event.JOB_TAKEN_DOWN,
+        title="Job taken down",
+        body=(
+            f"{job.title} was removed from CampusGig after a safety report "
+            "was reviewed and actioned. Contact support to appeal."
+        ),
+        payload={"job_id": str(job.id), "report_id": str(report.id)},
+    )
+
+
 def notify_interview(interview, event=Notification.Event.INTERVIEW_SCHEDULED):
     application = interview.application
     payload = {"interview_id": str(interview.id), "application_id": str(application.id)}
+    when = format_interview_time(interview.starts_at, interview.timezone_name)
     for recipient in (application.student.user, application.job.business.user):
         create_notification(
             recipient=recipient,
             event=event,
             title="Interview updated" if event != Notification.Event.INTERVIEW_SCHEDULED else "Interview scheduled",
-            body=f"An interview for {application.job.title} is scheduled at {interview.starts_at.isoformat()}.",
+            body=f"An interview for {application.job.title} is scheduled for {when}.",
             payload=payload,
         )

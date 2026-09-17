@@ -80,6 +80,11 @@ class ReviewSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+class ReviewModerationSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=[Review.Status.HIDDEN, Review.Status.PUBLISHED])
+    review_notes = serializers.CharField(required=True, allow_blank=False)
+
+
 class TrustScoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrustScoreSnapshot

@@ -102,6 +102,7 @@ class AuditLog(models.Model):
         JOB = "JOB", _("Job")
         APPLICATION = "APPLICATION", _("Application")
         BUSINESS_VERIFICATION = "BUSINESS_VERIFICATION", _("Business verification")
+        REVIEW = "REVIEW", _("Review")
         REPORT = "REPORT", _("Report")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
