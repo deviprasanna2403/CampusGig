@@ -7,7 +7,7 @@
  */
 
 import { api } from "./client";
-import type { Application, ApplicationStatus, Paginated } from "./types";
+import type { Application, ApplicationStatus, JobStatus, Paginated } from "./types";
 
 export interface ApplicationRow extends Application {
   job_title: string; // `job` is a StringRelatedField -> Job.__str__ = title
@@ -47,6 +47,10 @@ export interface BusinessApplicationRow {
   student: string;
   cover_note: string;
   status: ApplicationStatus;
+  /** Phase F6 reviews — see Application type for the rationale. */
+  job_status?: JobStatus;
+  counterparty_id?: string;
+  my_review_rating?: number | null;
   submitted_at: string;
   created_at: string;
   updated_at: string;

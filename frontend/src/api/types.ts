@@ -81,6 +81,7 @@ export type JobStatus =
   | "IN_PROGRESS"
   | "COMPLETED"
   | "CLOSED"
+  | "EXPIRED"
   | "CANCELLED";
 
 export interface JobCategory {
@@ -111,6 +112,8 @@ export interface Job {
   status: JobStatus;
   /** Business owner's account email (serializer method field). */
   business: string;
+  /** Phase F6: business owner's user id — links to their reviews page. */
+  business_user_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -132,7 +135,33 @@ export interface Application {
   student: string;
   cover_note: string;
   status: ApplicationStatus;
+  /** Phase F6: job status echo — reviews require a completed job. */
+  job_status?: JobStatus;
+  /** Phase F6: the other party's user id (business for students, student for businesses). */
+  counterparty_id?: string;
+  /** Phase F6: rating the current user already gave on this application (null if none). */
+  my_review_rating?: number | null;
   submitted_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/* --- reviews (Phase 8 API, F6 UI) ----------------------------------------- */
+
+export type ReviewStatus = "PUBLISHED" | "HIDDEN" | "UNDER_REVIEW";
+
+export interface ReviewRow {
+  id: string;
+  application: string;
+  /** Reviewer/reviewee user ids (UUIDs). */
+  reviewer: string;
+  reviewee: string;
+  /** Display emails (F6). */
+  reviewer_email: string;
+  reviewee_email: string;
+  rating: number; // 1..5
+  comment: string;
+  status: ReviewStatus;
   created_at: string;
   updated_at: string;
 }

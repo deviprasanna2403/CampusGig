@@ -47,9 +47,14 @@ class ReportReviewSerializer(serializers.Serializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    # F6 UI: display emails alongside the raw ids (reviewer/reviewee remain
+    # UUIDs for API stability — Phase 8 clients see no breaking change).
+    reviewer_email = serializers.CharField(source="reviewer.email", read_only=True)
+    reviewee_email = serializers.CharField(source="reviewee.email", read_only=True)
+
     class Meta:
         model = Review
-        fields = ["id", "application", "reviewer", "reviewee", "rating", "comment", "status", "created_at", "updated_at"]
+        fields = ["id", "application", "reviewer", "reviewee", "reviewer_email", "reviewee_email", "rating", "comment", "status", "created_at", "updated_at"]
         read_only_fields = ["id", "reviewer", "reviewee", "status", "created_at", "updated_at"]
 
     def validate(self, attrs):

@@ -2,10 +2,13 @@ import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { listMyApplications, withdrawApplication } from "../../api/applications";
+import { canReview } from "../../api/reviews";
 import type { ApplicationStatus } from "../../api/types";
 import ErrorState from "../../components/ErrorState";
 import Pagination from "../../components/Pagination";
 import StatusBadge from "../../components/jobs/StatusBadge";
+import ReviewForm from "../../components/reviews/ReviewForm";
+import { Stars } from "../../components/reviews/ReviewsList";
 
 const STATUS_OPTIONS: [ApplicationStatus | "", string][] = [
   ["", "All statuses"],
@@ -28,6 +31,8 @@ export default function MyApplications() {
     queryFn: () => listMyApplications({ status: status || undefined, page }),
     placeholderData: keepPreviousData,
   });
+
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   const withdrawM = useMutation({
     mutationFn: withdrawApplication,
@@ -84,6 +89,26 @@ export default function MyApplications() {
                     >
                       Withdraw
                     </button>
+                  )}
+                  {canReview(a) && a.my_review_rating != null && (
+                    <span className="muted small">You rated: <Stars value={a.my_review_rating} /></span>
+                  )}
+                  {canReview(a) && a.my_review_rating == null && a.counterparty_id && reviewingId !== a.id && (
+                    <button className="btn ghost" onClick={() => setReviewingId(a.id)}>
+                      Leave review
+                    </button>
+                  )}
+                  {canReview(a) && a.my_review_rating == null && reviewingId === a.id && a.counterparty_id && (
+                    <ReviewForm
+                      userId={a.counterparty_id}
+                      applicationId={a.id}
+                      counterpartyLabel="the business"
+                      onDone={() => setReviewingId(null)}
+                      onCancel={() => setReviewingId(null)}
+                    />
+                  )}
+                  {a.status === "SELECTED" && !canReview(a) && (
+                    <span className="muted small">Review opens when the job completes.</span>
                   )}
                 </div>
               </article>

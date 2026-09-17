@@ -168,7 +168,9 @@ class ReviewListCreateView(generics.ListCreateAPIView):
     serializer_class = ReviewSerializer
 
     def get_queryset(self):
-        return Review.objects.filter(reviewee_id=self.kwargs["user_id"], status=Review.Status.PUBLISHED)
+        return Review.objects.filter(
+            reviewee_id=self.kwargs["user_id"], status=Review.Status.PUBLISHED
+        ).select_related("reviewer", "reviewee").order_by("-created_at")
 
     def perform_create(self, serializer):
         serializer.save()

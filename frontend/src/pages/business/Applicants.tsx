@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { listBusinessApplications, updateApplicationStatus } from "../../api/applications";
+import { canReview } from "../../api/reviews";
 import { createConversation } from "../../api/communication";
 import { ApiError } from "../../api/client";
 import { listMyJobs } from "../../api/jobs";
@@ -9,6 +10,8 @@ import type { ApplicationStatus } from "../../api/types";
 import ErrorState from "../../components/ErrorState";
 import Pagination from "../../components/Pagination";
 import StatusBadge from "../../components/jobs/StatusBadge";
+import ReviewForm from "../../components/reviews/ReviewForm";
+import { Stars } from "../../components/reviews/ReviewsList";
 
 /** Allowed business transitions (WITHDRAWN is student-only; backend validates). */
 const NEXT_STATUS: Record<string, ApplicationStatus[]> = {
@@ -38,6 +41,7 @@ export default function Applicants() {
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   const jobsQ = useQuery({ queryKey: ["my-jobs", "", 1], queryFn: () => listMyJobs({ page: 1 }), staleTime: 60_000 });
 
@@ -123,6 +127,26 @@ export default function Applicants() {
                       <button className="btn ghost" disabled={chatM.isPending} onClick={() => chatM.mutate(a.id)}>
                         Chat
                       </button>
+                    )}
+                    {canReview(a) && a.my_review_rating != null && (
+                      <span className="muted small">You rated: <Stars value={a.my_review_rating} /></span>
+                    )}
+                    {canReview(a) && a.my_review_rating == null && a.counterparty_id && reviewingId !== a.id && (
+                      <button className="btn ghost" onClick={() => setReviewingId(a.id)}>
+                        Leave review
+                      </button>
+                    )}
+                    {canReview(a) && a.my_review_rating == null && reviewingId === a.id && a.counterparty_id && (
+                      <ReviewForm
+                        userId={a.counterparty_id}
+                        applicationId={a.id}
+                        counterpartyLabel={a.student}
+                        onDone={() => setReviewingId(null)}
+                        onCancel={() => setReviewingId(null)}
+                      />
+                    )}
+                    {a.status === "SELECTED" && !canReview(a) && (
+                      <span className="muted small">Review opens when the job completes.</span>
                     )}
                     {nexts.length > 0 && (
                       <div className="action-row">

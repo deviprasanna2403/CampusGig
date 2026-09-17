@@ -62,6 +62,9 @@ class JobSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "business",
+            # Phase F6 reviews: lets the UI link to /safety/reviews/<id>/ for
+            # the business account.
+            "business_user_id",
             "title",
             "description",
             "category",
@@ -85,6 +88,8 @@ class JobSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "business", "status", "created_at", "updated_at"]
+
+    business_user_id = serializers.CharField(source="business.user_id", read_only=True)
 
     def get_business(self, obj):
         return obj.business.user.email if obj.business else None

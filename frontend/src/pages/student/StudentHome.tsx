@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { studentAnalytics } from "../../api/analytics";
 import { useAuth } from "../../auth/AuthContext";
 import ErrorState from "../../components/ErrorState";
+import ReviewsList from "../../components/reviews/ReviewsList";
 
 /**
  * Student dashboard — real Phase 9B data from analytics/student/me/:
@@ -45,6 +46,13 @@ export default function StudentHome() {
           <Link className="stat-link" to="/student/profile">Improve →</Link>
         </div>
       </div>
+
+      {user && (
+        <div className="card">
+          <h2>Reviews about you</h2>
+          <ReviewsList userId={user.id} emptyText="No reviews yet — they appear after you complete a gig." max={3} />
+        </div>
+      )}
 
       {s.rating_average !== null && (
         <p className="muted small">Your average rating: {s.rating_average} ★</p>

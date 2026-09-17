@@ -5,6 +5,7 @@ import { getMyBusinessProfile } from "../../api/profiles";
 import { getMyVerification } from "../../api/safety";
 import { useAuth } from "../../auth/AuthContext";
 import ErrorState from "../../components/ErrorState";
+import ReviewsList from "../../components/reviews/ReviewsList";
 import StatusBadge from "../../components/jobs/StatusBadge";
 
 const VERIFICATION_COPY: Record<string, { text: string; tone: "warn" | "success" | "info" }> = {
@@ -65,6 +66,13 @@ export default function BusinessHome() {
           <span className="stat-label">Average rating</span>
         </div>
       </div>
+
+      {user && (
+        <div className="card">
+          <h2>Reviews about your business</h2>
+          <ReviewsList userId={user.id} emptyText="No reviews yet — students can review you after completed gigs." max={3} />
+        </div>
+      )}
 
       {profileQ.data && (
         <div className="banner info">

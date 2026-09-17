@@ -7,6 +7,7 @@ import { trackEngagement } from "../../api/matching";
 import { useAuth } from "../../auth/AuthContext";
 import { ApiError } from "../../api/client";
 import ErrorState from "../../components/ErrorState";
+import ReviewsList from "../../components/reviews/ReviewsList";
 import StatusBadge from "../../components/jobs/StatusBadge";
 
 export default function JobDetail() {
@@ -76,6 +77,17 @@ export default function JobDetail() {
                 <span key={s.id} className="skill-tag">{s.name}</span>
               ))}
             </p>
+          </>
+        )}
+
+        {job.business_user_id && (
+          <>
+            <h2>About the business</h2>
+            <ReviewsList
+              userId={job.business_user_id}
+              emptyText="No reviews yet for this business."
+              max={3}
+            />
           </>
         )}
       </div>

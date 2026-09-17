@@ -24,6 +24,7 @@ import Recommendations from "./pages/student/Recommendations";
 import Messages from "./pages/shared/Messages";
 import Interviews from "./pages/shared/Interviews";
 import Notifications from "./pages/shared/Notifications";
+import UserReviews from "./pages/shared/UserReviews";
 
 /**
  * Route architecture (F1):
@@ -55,6 +56,8 @@ export default function App() {
             <Route path="/messages" element={<Messages />} />
             <Route path="/interviews" element={<Interviews />} />
             <Route path="/notifications" element={<Notifications />} />
+            {/* Public reviews page for any account (Phase F6). */}
+            <Route path="/reviews/:userId" element={<UserReviews />} />
           </Route>
           <Route element={<RoleRoute allow={["business"]} />}>
             <Route path="/business" element={<BusinessHome />} />
