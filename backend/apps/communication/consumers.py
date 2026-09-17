@@ -4,6 +4,7 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
 from apps.communication.models import Conversation, Message
+from apps.communication.broadcast import abroadcast_message
 
 
 class ConversationConsumer(AsyncJsonWebsocketConsumer):
@@ -27,10 +28,7 @@ class ConversationConsumer(AsyncJsonWebsocketConsumer):
             await self.send_json({"error": "Message body cannot be blank."})
             return
         message = await self.create_message(body)
-        await self.channel_layer.group_send(
-            self.group_name,
-            {"type": "chat.message", "message": {"id": str(message.id), "body": message.body, "sender_id": str(message.sender_id), "created_at": message.created_at.isoformat()}},
-        )
+        await abroadcast_message(message)
 
     async def chat_message(self, event):
         await self.send_json(event["message"])

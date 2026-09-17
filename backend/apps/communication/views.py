@@ -7,6 +7,7 @@ from apps.communication.models import Conversation, Message
 from apps.communication.serializers import ConversationSerializer, MessageSerializer
 from apps.notifications.services import create_notification
 from apps.notifications.models import Notification
+from apps.communication.broadcast import broadcast_message
 
 
 class ConversationListCreateView(generics.ListCreateAPIView):
@@ -41,6 +42,7 @@ class MessageListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         message = serializer.save(conversation=self.get_conversation())
+        broadcast_message(message)
         recipient = message.conversation.business if message.sender_id == message.conversation.student_id else message.conversation.student
         create_notification(
             recipient=recipient,

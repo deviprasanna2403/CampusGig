@@ -34,6 +34,11 @@ DEBUG = env.bool("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 INSTALLED_APPS = [
+    # F6: serves the Channels WebSocket consumer through `manage.py runserver`
+    # (Django switches runserver to ASGI only when daphne is listed here).
+    # Must precede django.contrib.staticfiles. Production is unaffected —
+    # deploy/entrypoint.sh runs Daphne directly.
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

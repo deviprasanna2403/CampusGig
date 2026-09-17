@@ -16,6 +16,12 @@ export default defineConfig({
         target: process.env.CAMPUSGIG_BACKEND_ORIGIN ?? "http://127.0.0.1:8000",
         changeOrigin: true,
       },
+      "/ws": {
+        // Chat WebSocket (Channels) — ws: true forwards the upgrade.
+        target: process.env.CAMPUSGIG_BACKEND_ORIGIN ?? "http://127.0.0.1:8000",
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 });
