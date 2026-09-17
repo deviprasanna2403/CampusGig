@@ -79,9 +79,27 @@ export default function JobDetail() {
 
   const job = jobQ.data!;
 
+  const takenDown = job.status === "CANCELLED";
+  const notAccepting = !takenDown && job.status !== "PUBLISHED" && job.status !== "OPEN";
+
   return (
     <section className="job-detail">
       <Link to="/student" className="muted small">← Back to jobs</Link>
+      {takenDown && job.viewer_has_history && (
+        <div className="banner warn">
+          <span>
+            This listing was <strong>taken down</strong> after a safety review. Your application
+            and any messages are kept — contact support if you believe this is a mistake.
+          </span>
+        </div>
+      )}
+      {!takenDown && notAccepting && job.viewer_has_history && (
+        <div className="banner info">
+          <span>
+            This job is no longer accepting applications ({job.status.replaceAll("_", " ").toLowerCase()}).
+          </span>
+        </div>
+      )}
       <div className="card">
         <div className="job-card-head">
           <h1>{job.title}</h1>
@@ -184,26 +202,32 @@ export default function JobDetail() {
         </div>
       )}
 
-      <div className="card">
-        <h2>Apply for this job</h2>
-        {applyError && <div className="form-error">{applyError}</div>}
-        <label>
-          Cover note (optional)
-          <textarea
-            rows={4}
-            maxLength={1000}
-            placeholder="Why are you a good fit?"
-            value={coverNote}
-            onChange={(e) => setCoverNote(e.target.value)}
-          />
-        </label>
-        <button className="btn primary" onClick={() => applyM.mutate()} disabled={applyM.isPending}>
-          {applyM.isPending ? "Submitting…" : "Submit application"}
-        </button>
-        <p className="muted small">
-          One application per job — the platform rejects duplicates automatically.
-        </p>
-      </div>
+      {takenDown || notAccepting ? (
+        <div className="card center">
+          <p className="muted">This job is not accepting applications.</p>
+        </div>
+      ) : (
+        <div className="card">
+          <h2>Apply for this job</h2>
+          {applyError && <div className="form-error">{applyError}</div>}
+          <label>
+            Cover note (optional)
+            <textarea
+              rows={4}
+              maxLength={1000}
+              placeholder="Why are you a good fit?"
+              value={coverNote}
+              onChange={(e) => setCoverNote(e.target.value)}
+            />
+          </label>
+          <button className="btn primary" onClick={() => applyM.mutate()} disabled={applyM.isPending}>
+            {applyM.isPending ? "Submitting…" : "Submit application"}
+          </button>
+          <p className="muted small">
+            One application per job — the platform rejects duplicates automatically.
+          </p>
+        </div>
+      )}
     </section>
   );
 }

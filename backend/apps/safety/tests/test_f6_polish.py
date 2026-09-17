@@ -230,6 +230,54 @@ class ReportJobTakedownTests(F6PolishFixture):
         self.assertEqual(report.status, Report.Status.ACTIONED)
 
 
+class TakenDownJobVisibilityTests(F6PolishFixture):
+    """F6: a taken-down (CANCELLED) job disappears from discovery but stays
+    reachable — with a history flag — for students who applied to or engaged
+    with it, so the UI can explain instead of 404ing."""
+
+    def cancel_job(self):
+        self.job.status = Job.Status.CANCELLED
+        self.job.save(update_fields=["status", "updated_at"])
+
+    def test_applicant_still_sees_cancelled_job_with_history_flag(self):
+        self.cancel_job()
+        self.client.force_authenticate(self.student_user)  # has a SELECTED application
+        response = self.client.get(reverse("jobs:job-detail", kwargs={"pk": self.job.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], Job.Status.CANCELLED)
+        self.assertTrue(response.data["viewer_has_history"])
+
+    def test_student_with_only_engagement_still_sees_cancelled_job(self):
+        from apps.matching.models import StudentJobEngagement
+
+        StudentJobEngagement.objects.create(
+            student=self.student, job=self.job, kind=StudentJobEngagement.Kind.SAVED
+        )
+        self.cancel_job()
+        self.client.force_authenticate(self.student_user)
+        response = self.client.get(reverse("jobs:job-detail", kwargs={"pk": self.job.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["viewer_has_history"])
+
+    def test_unrelated_student_still_gets_404_on_cancelled_job(self):
+        other = User.objects.create_user(
+            email="polish-outsider@example.com", password="C@mpusGig-Str0ng!", role=User.Role.STUDENT
+        )
+        self.cancel_job()
+        self.client.force_authenticate(other)
+        response = self.client.get(reverse("jobs:job-detail", kwargs={"pk": self.job.id}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_history_flag_false_for_open_job_without_history(self):
+        outsider = User.objects.create_user(
+            email="polish-nohistory@example.com", password="C@mpusGig-Str0ng!", role=User.Role.STUDENT
+        )
+        self.client.force_authenticate(outsider)
+        response = self.client.get(reverse("jobs:job-detail", kwargs={"pk": self.job.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["viewer_has_history"])
+
+
 class StudentReportDuplicateTests(F6PolishFixture):
     def test_second_open_report_for_same_target_is_rejected(self):
         self.client.force_authenticate(self.student_user)

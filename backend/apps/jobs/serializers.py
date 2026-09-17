@@ -65,6 +65,7 @@ class JobSerializer(serializers.ModelSerializer):
             # Phase F6 reviews: lets the UI link to /safety/reviews/<id>/ for
             # the business account.
             "business_user_id",
+            "viewer_has_history",
             "title",
             "description",
             "category",
@@ -90,6 +91,24 @@ class JobSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "business", "status", "created_at", "updated_at"]
 
     business_user_id = serializers.CharField(source="business.user_id", read_only=True)
+    # F6: true when the requesting student has an application or engagement
+    # on this job — the signal for showing the taken-down/unavailable banner
+    # instead of a bare 404 once the job leaves discovery.
+    viewer_has_history = serializers.SerializerMethodField()
+
+    def get_viewer_has_history(self, obj):
+        from apps.applications.models import Application
+        from apps.matching.models import StudentJobEngagement
+
+        request = self.context.get("request")
+        if request is None or not getattr(request, "user", None) or not request.user.is_authenticated:
+            return False
+        if request.user.role != "student":
+            return False
+        return (
+            Application.objects.filter(job=obj, student__user=request.user).exists()
+            or StudentJobEngagement.objects.filter(job=obj, student__user=request.user).exists()
+        )
 
     def get_business(self, obj):
         return obj.business.user.email if obj.business else None

@@ -92,10 +92,21 @@ class JobViewSet(viewsets.ModelViewSet):
         return qs
 
     def get_object(self):
+        # F6: students keep read access to jobs they have history with
+        # (application or engagement) even after the job leaves discovery —
+        # e.g. a takedown — so the detail page can explain why it vanished.
         queryset = self.get_queryset()
         pk = self.kwargs["pk"]
+        if self.request.user.role == "student":
+            queryset = queryset | Job.objects.filter(
+                pk=pk,
+                applications__student__user=self.request.user,
+            ) | Job.objects.filter(
+                pk=pk,
+                student_engagements__student__user=self.request.user,
+            )
         try:
-            obj = get_object_or_404(queryset, pk=pk)
+            obj = get_object_or_404(queryset.distinct(), pk=pk)
         except (ValueError, TypeError, ValidationError):
             raise Http404
         self.check_object_permissions(self.request, obj)

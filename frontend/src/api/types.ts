@@ -114,6 +114,9 @@ export interface Job {
   business: string;
   /** Phase F6: business owner's user id — links to their reviews page. */
   business_user_id?: string;
+  /** F6: requesting student has an application/engagement on this job —
+   *  drives the taken-down/unavailable banner on non-open jobs. */
+  viewer_has_history?: boolean;
   created_at: string;
   updated_at: string;
 }
