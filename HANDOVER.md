@@ -1,6 +1,6 @@
 # CampusGig — Platform Handover Document
 
-**Date:** 2026-09-17 · **Branch:** `main` · **HEAD:** `98650f8` (Phase 13 production readiness)
+**Date:** 2026-09-17 · **Branch:** `main` · **HEAD:** `d71f630` (F6 Reviews UI) · Audit originally executed at `98650f8`, refreshed after F6
 **Audit scope:** full read-only end-to-end quality audit of backend (Phases 1–13) and frontend (F1–F5), with live verification runs.
 
 ---
@@ -12,12 +12,12 @@ CampusGig is a campus jobs marketplace: businesses post part-time gigs near camp
 | Layer | State |
 |---|---|
 | Backend API (Django 5 + DRF + GeoDjango + PostGIS, Celery, Channels) | **Complete — Phases 1–13** |
-| Frontend SPA (React 19 + TypeScript + Vite + React Query + axios) | **Complete — F1–F5** |
+| Frontend SPA (React 19 + TypeScript + Vite + React Query + axios) | **Complete — F1–F6** |
 | Deployment (Docker Compose, CI, prod settings) | **Complete — Phase 13** |
-| Backend tests | **205/205 passing** (verified this audit) |
+| Backend tests | **212/212 passing** (205 at audit + 7 new F6 serializer tests) |
 | Frontend typecheck + production build | **Clean** (verified this audit; 432 kB JS / 129 kB gzip) |
 
-Git history (oldest → newest): `bbae32e` 9A verification lifecycle → `a651c1a` 9B analytics & audit → `dd3363e` F1 → `59e9c48` F2 → `df71eab` F3 → `96f4503` F4 → `b43a054` F5 → `98650f8` Phase 13. Working tree is clean except the intentionally untracked `backend/smoke_test_phase9b.py`.
+Git history (oldest → newest): `bbae32e` 9A verification lifecycle → `a651c1a` 9B analytics & audit → `dd3363e` F1 → `59e9c48` F2 → `df71eab` F3 → `96f4503` F4 → `b43a054` F5 → `98650f8` Phase 13 → `a198541` Vite proxy env override → `d71f630` F6 Reviews UI. Working tree is clean except the intentionally untracked `backend/smoke_test_phase9b.py` and `.freebuff/` (local agent run notes).
 
 ---
 
@@ -29,8 +29,8 @@ Git history (oldest → newest): `bbae32e` 9A verification lifecycle → `a651c1
 | Migrations in sync | `manage.py makemigrations --check --dry-run` | No changes detected |
 | Prod settings load | `manage.py check --settings=config.settings.prod` (with required env) | 0 issues |
 | Django deploy check | `manage.py check --deploy --settings=config.settings.prod` | Only pre-existing cosmetic drf-spectacular warnings (serializer type-hints, enum-name collisions, 5 APIViews without serializer_class) + expected W009 from the short audit secret. **No security findings.** |
-| Backend test suite | `pytest apps/…` (all 11 apps) | **205 passed, 0 failed** (split runs: 141 + 64; ~10.5 min on this machine) |
-| Frontend typecheck + build | `npm run build` (runs `tsc -b && vite build`) | Clean: 168 modules, `dist/assets/index-*.js` 432.37 kB (gzip 128.91 kB), CSS 16.14 kB |
+| Backend test suite | `pytest apps/…` (all 11 apps) | **212 passed, 0 failed** (205 at audit + 7 F6 tests; re-verified after F6) |
+| Frontend typecheck + build | `npm run build` (runs `tsc -b && vite build`) | Clean after F6: 172 modules, `dist/assets/index-*.js` 438.24 kB (gzip 130.18 kB), CSS 16.91 kB |
 | Dead-code scan | grep for TODO/FIXME/XXX/HACK across backend + frontend | **None found** |
 | Repo hygiene | `git status` | Clean; no junk (caches/venv/logs/`.env`) tracked; smoke script untracked as intended |
 
@@ -55,9 +55,9 @@ campusgig_phase4_fixed/
 │   └── venv/                    # local Windows venv (untracked)
 └── frontend/
     ├── src/
-    │   ├── api/                 # 12 typed API modules + client.ts (axios, JWT refresh, session-expiry event)
+    │   ├── api/                 # 13 typed API modules + client.ts (axios, JWT refresh, session-expiry event)
     │   ├── auth/                # AuthContext (localStorage session), RoleRoute guards
-    │   ├── components/          # layout (AppShell, NotificationBell), jobs (Card/Filters/Badge), ui
+    │   ├── components/          # layout (AppShell, NotificationBell), jobs (Card/Filters/Badge), reviews (ReviewForm, ReviewsList), ui
     │   └── pages/               # student/ business/ admin/ shared/ + auth pages
     ├── Dockerfile · nginx.conf · .dockerignore · vite.config.ts
     └── package.json             # react 19, react-router 7, @tanstack/react-query 5, axios, vite 8, ts 6, oxlint
@@ -115,10 +115,12 @@ campusgig_phase4_fixed/
 
 | Role | Pages |
 |---|---|
-| **Student** | Dashboard, Job discovery (campus-based, filters, sort incl. distance), Job detail (coordinates echo, engagement tracking, apply), My applications (withdraw), Recommendations (score breakdown, save/engage), Profile editor (skills/availability) |
-| **Business** | Dashboard (analytics), My jobs, Job editor (CRUD + publish/close/cancel/reopen), Applicants (pipeline transitions + Chat), Verification wizard (submit/resubmit), Business profile editor |
+| **Student** | Dashboard (+ reviews about you), Job discovery (campus-based, filters, sort incl. distance), Job detail (coordinates echo, engagement tracking, business reviews, apply), My applications (withdraw, leave review), Recommendations (score breakdown, save/engage), Profile editor (skills/availability) |
+| **Business** | Dashboard (analytics + reviews about your business), My jobs, Job editor (CRUD + publish/close/cancel/reopen), Applicants (pipeline transitions, chat, leave review), Verification wizard (submit/resubmit), Business profile editor |
 | **Admin** | Dashboard (real platform analytics: stat cards, date-window + interval, timeseries bars, status breakdowns), Verification review queue (two-step SUBMITTED→UNDER_REVIEW→VERIFIED/REJECTED, revoke with notes, re-verify), Audit-log viewer (action/target/actor/date filters + pagination), Report moderation (take review → valid/dismiss/actioned with notes) |
-| **Shared** | Messages (two-pane threads, 5s polling, auto-mark-read), Interviews (role-aware schedule/confirm/decline/cancel/complete), Notifications (page + topbar bell with unread count) |
+| **Shared** | Messages (two-pane threads, 5s polling, auto-mark-read), Interviews (role-aware schedule/confirm/decline/cancel/complete), Notifications (page + topbar bell with unread count), Reviews (`/reviews/:userId` — full review history for any account) |
+
+**F6 reviews (new):** once a job is CLOSED/EXPIRED, both parties of a SELECTED application can rate each other 1–5 with an optional comment — students from My applications, businesses from Applicants (inline star form; the row flips to "You rated ★…" and duplicates are blocked server-side). Received reviews with averages render on both dashboards, on the student job-detail page ("About the business"), and in full on `/reviews/:userId`. The client gates the button from new serializer fields (`job_status`, `counterparty_id`, `my_review_rating`, `business_user_id`) while the Phase 8 rules remain the enforcement point; the business dashboard's "Average rating" stat is now fed by live reviews through the 9B trust score. Covered by `backend/apps/applications/tests/test_f6_review_serializer_fields.py` (7 tests).
 
 **Design:** single custom CSS design system in `index.css` (no UI framework), responsive at mobile widths, consistent error/empty/loading states via shared components.
 
@@ -126,8 +128,8 @@ campusgig_phase4_fixed/
 
 ## 7. Testing & CI
 
-- **Backend:** 205 tests across 20 files — models, permissions, views, serializers, regressions (application validation, interview transitions), health, analytics, audit, phases 7/8/9. Suite takes ~10.5 min on the dev machine (heavy PostGIS/point setup dominates).
-- **Frontend:** verification is `tsc -b` + production build + live E2E (per-phase manual E2E was performed through F1–F5 in the running app). No JS unit-test framework is installed (deliberate — consistent with F1–F5; see §11).
+- **Backend:** 212 tests across 21 files — models, permissions, views, serializers, regressions (application validation, interview transitions), health, analytics, audit, phases 7/8/9, and F6 review-serializer contracts. Suite takes ~11 min on the dev machine (heavy PostGIS/point setup dominates).
+- **Frontend:** verification is `tsc -b` + production build + live E2E (per-phase manual E2E was performed through F1–F6 in the running app; F6 reviews were exercised live across both roles: job close → review → dashboard/average display → `/reviews/:userId`). No JS unit-test framework is installed (deliberate — consistent with F1–F5; see §11).
 - **CI** (`.github/workflows/ci.yml`): backend job — PostGIS + Redis service containers, GeoDjango system libs, dev requirements, `manage.py check` + prod-settings check + full pytest; frontend job — `npm ci`, `tsc -b`, build. Not yet exercised (no remote with Actions configured).
 
 ---
@@ -173,7 +175,7 @@ docker compose up --build
 ## 10. Known issues & limitations (honest list)
 
 **Minor functional gaps:**
-1. **Reviews have no UI** — the Phase 8 API (`/safety/reviews/<user_id>/`, trust-score feed) exists and is tested, but students/businesses can't write reviews from the frontend; ratings only display on dashboards. *(Highest-value next feature.)*
+1. ~~**Reviews have no UI**~~ **Closed in F6** (`d71f630`) — reviews are now written from My applications / Applicants after a completed engagement and displayed on dashboards, job detail, and `/reviews/:userId` (see §6). Remaining review-related gap: admins can't moderate (hide) reviews from the UI; only the API supports the HIDDEN/UNDER_REVIEW statuses.
 2. **Chat uses 5s REST polling** — the tested WebSocket consumer is not yet used by the frontend (documented in `Messages.tsx`). Works fine at current scale; WS adoption is a deliberate follow-up.
 3. **Interview notification bodies show raw ISO timestamps** (pre-existing, cosmetic).
 4. **Report "ACTIONED" is bookkeeping only** — it does not auto-hide/disable the reported job.
@@ -191,7 +193,7 @@ docker compose up --build
 ## 11. Recommended roadmap (do NOT treat as committed scope)
 
 **Next features (in suggested order):**
-1. **F6 polish** — Reviews UI (write/read reviews after completed engagements), human-readable interview notification times, report-driven job takedown. Closes items 1, 3, 4 above.
+1. **Finish F6 polish** — human-readable interview notification times (item 3), report-driven job takedown (item 4), and an admin review-moderation view (API statuses exist; see item 1). *(Reviews read/write shipped in F6 — item 1 closed.)*
 2. **WebSocket chat adoption** in `Messages.tsx` (backend already tested).
 3. **Frontend unit tests** (Vitest for `client.ts` refresh logic + auth context), wired into CI.
 4. **Live Docker smoke** on a Docker host; then push repo to enable CI.
@@ -204,7 +206,7 @@ docker compose up --build
 
 - [ ] Read `backend/docs/PHASE4_API.md` → `PHASE13_DEPLOY.md` (each phase documents endpoints, permissions, validation, known gaps)
 - [ ] Interactive docs: run the backend and open `http://127.0.0.1:8000/api/v1/docs/`
-- [ ] Run the backend suite before/after any change: `pytest apps -q` (expect 205 passing)
+- [ ] Run the backend suite before/after any change: `pytest apps -q` (expect 212 passing)
 - [ ] Frontend: `npm run build` must stay green; `oxlint` available via `npm run lint`
 - [ ] Never edit generated migrations by hand; `makemigrations --check` must stay clean in CI
 - [ ] Secrets only via `.env` (root for compose, `backend/.env` for local dev) — templates provided, real `.env` files are git-ignored
