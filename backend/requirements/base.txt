@@ -16,3 +16,7 @@ redis>=5.0,<6.0
 
 # CORS for the React frontend (Phase F1)
 django-cors-headers>=4.4,<5.0
+
+# Phase 13 — production serving
+gunicorn>=22.0,<24.0
+whitenoise>=6.6,<7.0
