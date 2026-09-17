@@ -11,7 +11,9 @@ export default defineConfig({
     // no CORS involved in local development.
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8000",
+        // Backend origin; overridable so the dev server can point at a
+        // backend on a non-default port (e.g. 8000 already taken).
+        target: process.env.CAMPUSGIG_BACKEND_ORIGIN ?? "http://127.0.0.1:8000",
         changeOrigin: true,
       },
     },
