@@ -230,6 +230,40 @@ class ReportJobTakedownTests(F6PolishFixture):
         self.assertEqual(report.status, Report.Status.ACTIONED)
 
 
+class StudentReportDuplicateTests(F6PolishFixture):
+    def test_second_open_report_for_same_target_is_rejected(self):
+        self.client.force_authenticate(self.student_user)
+        first = self.client.post(
+            reverse("safety:report-list"),
+            {"target_type": "JOB", "target_id": str(self.job.id), "category": "PAYMENT_ISSUE", "description": "Asks for an off-platform deposit."},
+            format="json",
+        )
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        second = self.client.post(
+            reverse("safety:report-list"),
+            {"target_type": "JOB", "target_id": str(self.job.id), "category": "FAKE_JOB", "description": "Reporting the same job again."},
+            format="json",
+        )
+        self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_report_allowed_again_after_resolution(self):
+        self.client.force_authenticate(self.student_user)
+        url = reverse("safety:report-list")
+        payload = {"target_type": "JOB", "target_id": str(self.job.id), "category": "OTHER", "description": "First report, since resolved."}
+        first = self.client.post(url, payload, format="json")
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        self.client.force_authenticate(self.admin)
+        self.client.patch(
+            reverse("safety:report-admin-review", kwargs={"pk": first.data["id"]}),
+            {"status": "DISMISSED"},
+            format="json",
+        )
+        # Resolved reports don't block a fresh report about the same target.
+        self.client.force_authenticate(self.student_user)
+        again = self.client.post(url, {**payload, "description": "New circumstances, reporting again."}, format="json")
+        self.assertEqual(again.status_code, status.HTTP_201_CREATED)
+
+
 class ReviewModerationTests(F6PolishFixture):
     def make_review(self):
         return Review.objects.create(

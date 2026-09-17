@@ -40,6 +40,29 @@ class ReportSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Please provide at least 10 characters.")
         return value
 
+    def validate(self, attrs):
+        # F6 (student report button): one live report per reporter+target.
+        # Terminal resolutions (VALID/DISMISSED/ACTIONED) don't block a new
+        # report — circumstances may change — but piling up duplicates of an
+        # already-open report adds no signal. Uses reporter from the request
+        # context; perform_create assigns it to the instance afterwards.
+        request = self.context.get("request")
+        reporter = getattr(request, "user", None)
+        target_type = attrs.get("target_type")
+        target_id = attrs.get("target_id")
+        if reporter is not None and target_type and target_id:
+            exists = Report.objects.filter(
+                reporter=reporter,
+                target_type=target_type,
+                target_id=target_id,
+                status__in=[Report.Status.OPEN, Report.Status.UNDER_REVIEW],
+            ).exists()
+            if exists:
+                raise serializers.ValidationError(
+                    "You already have an open report for this item — our safety team is on it."
+                )
+        return attrs
+
 
 class ReportReviewSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=[Report.Status.UNDER_REVIEW, Report.Status.VALID, Report.Status.DISMISSED, Report.Status.ACTIONED])

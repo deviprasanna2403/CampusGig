@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getJob } from "../../api/jobs";
 import { applyToJob } from "../../api/applications";
 import { trackEngagement } from "../../api/matching";
+import { createReport, listMyReports, type ReportCategory } from "../../api/safety";
 import { useAuth } from "../../auth/AuthContext";
 import { ApiError } from "../../api/client";
 import ErrorState from "../../components/ErrorState";
@@ -17,6 +18,11 @@ export default function JobDetail() {
   const { user } = useAuth();
   const [coverNote, setCoverNote] = useState("");
   const [applyError, setApplyError] = useState<string | null>(null);
+  const [showReport, setShowReport] = useState(false);
+  const [reportCategory, setReportCategory] = useState<ReportCategory>("FAKE_JOB");
+  const [reportDescription, setReportDescription] = useState("");
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reported, setReported] = useState(false);
 
   // Fire-and-forget engagement signal for matching (Phase 7); failures ignored.
   useEffect(() => {
@@ -40,6 +46,32 @@ export default function JobDetail() {
     },
     onError: (err) =>
       setApplyError(err instanceof ApiError ? (err.firstFieldError() ?? err.message) : "Could not submit application."),
+  });
+
+  const myReportsQ = useQuery({
+    queryKey: ["my-reports"],
+    queryFn: () => listMyReports(),
+    enabled: user?.role === "student",
+    staleTime: 30_000,
+  });
+  const alreadyReported =
+    !!id && (myReportsQ.data?.results ?? []).some((r) => r.target_type === "JOB" && r.target_id === id);
+
+  const reportM = useMutation({
+    mutationFn: () =>
+      createReport({
+        target_type: "JOB",
+        target_id: id!,
+        category: reportCategory,
+        description: reportDescription.trim(),
+      }),
+    onSuccess: () => {
+      setReportError(null);
+      setReported(true);
+      queryClient.invalidateQueries({ queryKey: ["my-reports"] });
+    },
+    onError: (err) =>
+      setReportError(err instanceof ApiError ? (err.firstFieldError() ?? err.message) : "Could not submit report."),
   });
 
   if (jobQ.isLoading) return <div className="page-loading">Loading job…</div>;
@@ -91,6 +123,66 @@ export default function JobDetail() {
           </>
         )}
       </div>
+
+      {user?.role === "student" && (
+        <div className="card">
+          <h2>Something wrong with this job?</h2>
+          {reported || alreadyReported ? (
+            <p className="success-note">
+              Thanks — your report is with our safety team. Reviewed reports can lead to the
+              listing being taken down.
+            </p>
+          ) : showReport ? (
+            <div className="report-form">
+              {reportError && <div className="form-error">{reportError}</div>}
+              <label>
+                What is wrong?
+                <select
+                  value={reportCategory}
+                  disabled={reportM.isPending}
+                  onChange={(e) => setReportCategory(e.target.value as ReportCategory)}
+                >
+                  <option value="FAKE_JOB">Fake job or scam</option>
+                  <option value="PAYMENT_ISSUE">Payment problem</option>
+                  <option value="HARASSMENT">Harassment</option>
+                  <option value="INAPPROPRIATE_CONTENT">Inappropriate content</option>
+                  <option value="OTHER">Something else</option>
+                </select>
+              </label>
+              <label>
+                Describe the issue (at least 10 characters)
+                <textarea
+                  rows={3}
+                  maxLength={2000}
+                  placeholder="Tell the safety team what happened."
+                  value={reportDescription}
+                  disabled={reportM.isPending}
+                  onChange={(e) => setReportDescription(e.target.value)}
+                />
+              </label>
+              <div className="action-row">
+                <button
+                  className="btn primary"
+                  disabled={reportM.isPending || reportDescription.trim().length < 10}
+                  onClick={() => reportM.mutate()}
+                >
+                  {reportM.isPending ? "Submitting…" : "Submit report"}
+                </button>
+                <button className="btn ghost" disabled={reportM.isPending} onClick={() => setShowReport(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="muted small">
+              Flag this listing for the safety team — reports are confidential.{" "}
+              <button className="btn ghost" onClick={() => setShowReport(true)}>
+                Report this job
+              </button>
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="card">
         <h2>Apply for this job</h2>
