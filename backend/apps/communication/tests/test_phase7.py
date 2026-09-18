@@ -30,7 +30,10 @@ class Phase7FixtureMixin:
         campus = Campus.objects.create(name="Phase 7 Campus", city="Bengaluru", location=Point(77.5946, 12.9716, srid=4326))
         BusinessProfile.objects.create(user=self.business_user, business_name="Business 7", campus=campus)
         self.student = StudentProfile.objects.create(user=self.student_user, full_name="Student 7", campus=campus)
-        self.category = JobCategory.objects.get(name__iexact="events")
+        # get_or_create, not get: TransactionTestCase teardowns flush the DB
+        # and re-seeding is not guaranteed to run between tests, so a bare
+        # get() makes fixture setup depend on which tests ran before.
+        self.category, _ = JobCategory.objects.get_or_create(name="events")
         self.job = Job.objects.create(
             business=self.business_user.business_profile,
             title="Phase 7 Gig",
@@ -136,6 +139,36 @@ class Phase7WebsocketTests(Phase7FixtureMixin, TransactionTestCase):
 
         asyncio.run(run())
         self.assertTrue(Message.objects.filter(conversation=conversation, body="Realtime hello").exists())
+
+    def test_consumer_answers_ping_with_pong_for_liveness_probing(self):
+        """Liveness contract (restart resilience): clients ping periodically to
+        detect a silently dead upstream; an unanswered ping makes the client
+        force-close the socket as a zombie. The pong must come back with
+        exactly this shape, and pings must never be persisted as messages.
+        """
+        application = Application.objects.create(job=self.job, student=self.student, status=Application.Status.SHORTLISTED)
+        conversation = Conversation.objects.create(application=application, student=self.student_user, business=self.business_user)
+        token = str(RefreshToken.for_user(self.student_user).access_token)
+
+        async def run():
+            communicator = WebsocketCommunicator(asgi_application, f"/ws/conversations/{conversation.id}/?token={token}")
+            connected, _ = await communicator.connect()
+            self.assertTrue(connected)
+            await communicator.send_json_to({"type": "ping"})
+            reply = await asyncio.wait_for(communicator.receive_json_from(), timeout=2)
+            self.assertEqual(reply, {"type": "pong"})
+            # The conversation stays fully usable after a ping round-trip.
+            await communicator.send_json_to({"body": "still alive after ping"})
+            event = await asyncio.wait_for(communicator.receive_json_from(), timeout=2)
+            self.assertEqual(event["body"], "still alive after ping")
+            await communicator.disconnect()
+
+        asyncio.run(run())
+        self.assertEqual(
+            Message.objects.filter(conversation=conversation).count(),
+            1,
+            "ping frames must not be persisted as chat messages",
+        )
 
 
 class RestBroadcastTests(Phase7FixtureMixin, APITestCase):
