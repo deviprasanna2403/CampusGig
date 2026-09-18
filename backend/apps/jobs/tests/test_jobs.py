@@ -195,8 +195,9 @@ class JobPhase5Tests(APITestCase):
         self.assertIn("campus", response.data["error"]["message"])
 
     def test_nearby_rejects_invalid_radius_km(self):
-        """radius_km must be a positive number — non-numeric and <=0 are
-        400s, never a 500 from an unhandled ValueError."""
+        """radius_km must be a positive number within the configured ceiling —
+        non-numeric, <=0, and above MAX_DISCOVERY_RADIUS_KM are 400s, never a
+        500 from an unhandled ValueError or an unbounded proximity scan."""
         self.auth(self.student_user)
         response = self.client.get(
             reverse("jobs:job-nearby"), {"radius_km": "abc"}, format="json"
@@ -207,6 +208,28 @@ class JobPhase5Tests(APITestCase):
             reverse("jobs:job-nearby"), {"radius_km": "0"}, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_nearby_rejects_radius_km_above_ceiling(self):
+        """radius_km beyond MAX_DISCOVERY_RADIUS_KM is a clean 400 naming the
+        limit; a value at the ceiling is accepted."""
+        from django.conf import settings as dj_settings
+
+        self.auth(self.student_user)
+        campus_id = self.campus.id
+        response = self.client.get(
+            reverse("jobs:job-nearby"),
+            {"campus_id": str(campus_id), "radius_km": dj_settings.MAX_DISCOVERY_RADIUS_KM + 1},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(str(dj_settings.MAX_DISCOVERY_RADIUS_KM), response.data["error"]["message"])
+
+        response = self.client.get(
+            reverse("jobs:job-nearby"),
+            {"campus_id": str(campus_id), "radius_km": dj_settings.MAX_DISCOVERY_RADIUS_KM},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_sort_distance_without_campus_returns_400(self):
         """?sort=distance with no resolvable campus (no campus_id param,

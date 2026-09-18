@@ -161,6 +161,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Default radius (km) used for campus-based job discovery.
 # See Phase 1 architecture, section 6. First consumed in Phase 5.
 DEFAULT_DISCOVERY_RADIUS_KM = env.int("DEFAULT_DISCOVERY_RADIUS_KM", default=20)
+# Ceiling for the nearby endpoint's radius_km param: campus jobs are local
+# by product definition, and an unbounded radius would make the proximity
+# query scan the whole table.
+MAX_DISCOVERY_RADIUS_KM = env.int("MAX_DISCOVERY_RADIUS_KM", default=50)
 
 # ---------------------------------------------------------------------------
 # GDAL/GEOS overrides

@@ -163,8 +163,9 @@ class JobViewSet(viewsets.ModelViewSet):
         if request.user.role != "student":
             return Response({"success": False, "data": None, "error": {"code": 403, "message": "Only students may access nearby jobs.", "details": None}}, status=403)
 
-        # radius_km must be a positive number — reject anything else with a
-        # clean 400 instead of an unhandled ValueError (500).
+        # radius_km must be a positive number with a sane ceiling — reject
+        # anything else with a clean 400 instead of an unhandled ValueError
+        # (500) or an effectively unbounded proximity search.
         radius_param = request.query_params.get("radius_km")
         if radius_param is not None:
             try:
@@ -173,6 +174,8 @@ class JobViewSet(viewsets.ModelViewSet):
                 return Response({"success": False, "data": None, "error": {"code": 400, "message": "radius_km must be a number.", "details": None}}, status=400)
             if radius_km <= 0:
                 return Response({"success": False, "data": None, "error": {"code": 400, "message": "radius_km must be positive.", "details": None}}, status=400)
+            if radius_km > settings.MAX_DISCOVERY_RADIUS_KM:
+                return Response({"success": False, "data": None, "error": {"code": 400, "message": f"radius_km cannot exceed {settings.MAX_DISCOVERY_RADIUS_KM} km.", "details": None}}, status=400)
         else:
             radius_km = settings.DEFAULT_DISCOVERY_RADIUS_KM
 

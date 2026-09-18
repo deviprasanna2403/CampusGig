@@ -61,6 +61,7 @@ export default function JobDiscovery() {
                 <option value="5">5 km</option>
                 <option value="10">10 km</option>
                 <option value="20">20 km</option>
+                <option value="50">50 km</option>
               </select>
               <span className="muted small">
                 {profileQ.data?.campus ? `of ${profileQ.data.campus.name}` : "— set a campus on your profile"}
