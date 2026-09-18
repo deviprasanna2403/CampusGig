@@ -182,7 +182,7 @@ docker compose up --build
 3. ~~**Interview notification bodies show raw ISO timestamps**~~ **Closed in F6 polish** (`882ecbe`) — bodies now read "18 Sep 2026, 09:12 IST" in the interview's timezone (invalid zones fall back to `TIME_ZONE`).
 4. ~~**Report "ACTIONED" is bookkeeping only**~~ **Closed in F6 polish + notice** (`882ecbe`, `b358b71`) — actioning a JOB report cancels the job from discovery and notifies the owner, once per report (re-reviews never re-cancel; dangling targets and notifier failures are handled); students who applied to or engaged with the job keep access to its detail page and see a taken-down explanation instead of a 404. No remaining gap.
 5. ~~**Student reporting is API-only**~~ **Closed in F6** (`f89a9a4`) — students report a listing from the job detail page (category + description, confidential), with an "already reported" state; a second open report on the same target is rejected server-side while resolved reports never block re-reporting.
-6. **In-use JobCategory DELETE surfaces ProtectedError as 500** (pre-existing, known from Phase 5 audit; presence-based protected-field check also documented in `docs/PHASE5_API.md` Known gaps).
+6. ~~**In-use JobCategory DELETE surfaces ProtectedError as 500**~~ **Already resolved** — re-verified 2026-09-18: the view's `perform_destroy` maps `ProtectedError` to a `CategoryInUse` 409 (envelope message "This category is referenced by one or more jobs and cannot be deleted."), `test_delete_in_use_category_returns_409` passes, and the behavior was reproduced live through the view layer. `docs/PHASE5_API.md` no longer lists it as a gap.
 7. **`nearby` `radius_km`** is validated for type/positivity but not for an upper bound.
 
 **Environmental / process:**
