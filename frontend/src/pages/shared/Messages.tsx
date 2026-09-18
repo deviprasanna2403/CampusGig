@@ -26,9 +26,10 @@ import ErrorState from "../../components/ErrorState";
  * chat degrades gracefully instead of breaking.
  *
  * Long-lived tabs: each connect pre-flights the access token (refreshing via
- * the shared single-flight path when missing/nearly expired), and a 4403
- * close triggers one refresh-authenticated retry before giving up — so an
- * expired JWT re-authenticates instead of silently degrading to polling.
+ * the shared single-flight path when missing/nearly expired), a 4403 close
+ * triggers one refresh-authenticated retry, and a 10s heartbeat keeps retrying
+ * after fast retries exhaust — so an expired JWT or a backend restart recovers
+ * the socket on its own instead of silently degrading to polling.
  */
 type WsStatus = "connecting" | "open" | "down";
 
@@ -81,6 +82,8 @@ export default function Messages() {
     }
     let socket: WebSocket | null = null;
     let retryTimer: number | undefined;
+    let pingTimer: number | undefined;
+    let awaitingPong = false;
     let gaveUp = false;
     retriedAfterAuth.current = false;
 
@@ -103,19 +106,49 @@ export default function Messages() {
         `${proto}://${window.location.host}/ws/conversations/${activeId}/?token=${encodeURIComponent(token)}`,
       );
       socketRef.current = socket;
+      const sock = socket; // narrowed capture for the closures below
       setWsStatus("connecting");
+      // Bound CONNECTING limbo: with the upstream down the dev proxy accepts
+      // the TCP connection but neither opens nor closes the WS, so without
+      // this the attempt would occupy the slot for the browser's own (very
+      // long) timeout. Force-close after 5s → onclose → retry machinery.
+      window.setTimeout(() => {
+        if (sock.readyState === WebSocket.CONNECTING) sock.close();
+      }, 5_000);
 
       socket.onopen = () => {
         if (!mountedRef.current) return;
         retryRef.current = 0;
+        retriedAfterAuth.current = false;
         setWsStatus("open");
         // Catch anything missed while we were disconnected.
         refreshThread();
       };
+      // Liveness: no close event arrives when the upstream dies silently
+      // (e.g. a backend restart kills the socket without a TCP FIN reaching
+      // us). Ping every 10s; an unanswered ping means the socket is a zombie
+      // — force-close and let the reconnect + heartbeat machinery take over.
+      if (pingTimer) window.clearInterval(pingTimer);
+      awaitingPong = false;
+      pingTimer = window.setInterval(() => {
+        if (sock.readyState !== WebSocket.OPEN) return;
+        if (awaitingPong) {
+          // Previous ping unanswered — the socket is a zombie.
+          awaitingPong = false;
+          sock.close();
+          return;
+        }
+        awaitingPong = true;
+        sock.send(JSON.stringify({ type: "ping" }));
+      }, 10_000);
       socket.onmessage = (event) => {
         if (!mountedRef.current) return;
         try {
-          const data = JSON.parse(event.data) as { error?: string; id?: string };
+          const data = JSON.parse(event.data) as { error?: string; id?: string; type?: string };
+          if (data.type === "pong") {
+            awaitingPong = false;
+            return;
+          }
           if (data.error) {
             setError(data.error);
             return;
@@ -150,7 +183,8 @@ export default function Messages() {
           return;
         }
         if (retryRef.current >= 3) {
-          gaveUp = true;
+          // Exhausted fast retries — the self-heal heartbeat below keeps a
+          // periodic slower retry going instead of giving up forever.
           return;
         }
         retryRef.current += 1;
@@ -160,8 +194,21 @@ export default function Messages() {
 
     connect();
 
+    // Self-heal heartbeat: while a thread is open, keep retrying the full
+    // connect path every 10s even after the fast retries run out — a backend
+    // restart must recover the socket on its own, with no reload or click.
+    const heartbeat = window.setInterval(() => {
+      if (!mountedRef.current || gaveUp || activeIdRef.current !== activeId) return;
+      if (socketRef.current) return;
+      retryRef.current = 0;
+      retriedAfterAuth.current = false;
+      connect();
+    }, 10_000);
+
     return () => {
       gaveUp = true;
+      window.clearInterval(heartbeat);
+      if (pingTimer) window.clearInterval(pingTimer);
       if (retryTimer) window.clearTimeout(retryTimer);
       if (socket && socket.readyState <= WebSocket.OPEN) {
         socket.onclose = null; // intentional close — no reconnect, no state churn

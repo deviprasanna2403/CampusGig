@@ -23,6 +23,11 @@ class ConversationConsumer(AsyncJsonWebsocketConsumer):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive_json(self, content, **kwargs):
+        # Liveness probe: the client pings periodically to detect a silently
+        # dead upstream (e.g. server restart) where no close event arrives.
+        if content.get("type") == "ping":
+            await self.send_json({"type": "pong"})
+            return
         body = str(content.get("body", "")).strip()
         if not body:
             await self.send_json({"error": "Message body cannot be blank."})
