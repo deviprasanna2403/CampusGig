@@ -1,6 +1,8 @@
+import asyncio
 from datetime import date, time, timedelta
 from decimal import Decimal
 
+from channels.layers import get_channel_layer
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import Point
@@ -132,6 +134,51 @@ class Phase7WebsocketTests(Phase7FixtureMixin, TransactionTestCase):
             self.assertEqual(event["body"], "Realtime hello")
             await communicator.disconnect()
 
-        import asyncio
         asyncio.run(run())
         self.assertTrue(Message.objects.filter(conversation=conversation, body="Realtime hello").exists())
+
+
+class RestBroadcastTests(Phase7FixtureMixin, APITestCase):
+    """REST-created messages must reach open sockets (the F6 broadcast contract).
+
+    The WS consumer and the REST create view funnel through
+    communication.broadcast so every client observes identical updates;
+    this pins the REST side of that promise.
+    """
+
+    def setUp(self):
+        self.make_fixture()
+
+    def test_rest_created_message_broadcasts_exactly_one_event_to_the_group(self):
+        application = Application.objects.create(job=self.job, student=self.student, status=Application.Status.SHORTLISTED)
+        conversation = Conversation.objects.create(application=application, student=self.student_user, business=self.business_user)
+        layer = get_channel_layer()
+        group = f"conversation_{conversation.id}"
+
+        async def join_group():
+            channel_name = await layer.new_channel()
+            await layer.group_add(group, channel_name)
+            return channel_name
+
+        observer = asyncio.run(join_group())
+
+        self.client.force_authenticate(self.student_user)
+        response = self.client.post(
+            reverse("communication:message-list", kwargs={"conversation_id": conversation.id}),
+            {"body": "Push over REST"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        async def collect():
+            return await asyncio.wait_for(layer.receive(observer), timeout=2)
+
+        event = asyncio.run(collect())
+        self.assertEqual(event["type"], "chat.message")
+        self.assertEqual(event["message"]["body"], "Push over REST")
+        self.assertEqual(event["message"]["sender_id"], str(self.student_user.id))
+        self.assertEqual(event["message"]["id"], response.data["id"])
+
+        # Exactly one event: no duplicates, no spurious traffic on the group.
+        with self.assertRaises(asyncio.TimeoutError):
+            asyncio.run(asyncio.wait_for(layer.receive(observer), timeout=0.2))
