@@ -6,7 +6,7 @@ import {
   markMessageRead,
   sendMessage,
 } from "../../api/communication";
-import { tokenStore } from "../../api/client";
+import { tokenStore, refreshIfExpiring, refreshAccessToken } from "../../api/client";
 import { useAuth } from "../../auth/AuthContext";
 import ErrorState from "../../components/ErrorState";
 
@@ -24,6 +24,11 @@ import ErrorState from "../../components/ErrorState";
  * email, read receipts) refetch immediately. When the socket is down the
  * page falls back to the previous 5s/10s REST polling and REST sending, so
  * chat degrades gracefully instead of breaking.
+ *
+ * Long-lived tabs: each connect pre-flights the access token (refreshing via
+ * the shared single-flight path when missing/nearly expired), and a 4403
+ * close triggers one refresh-authenticated retry before giving up — so an
+ * expired JWT re-authenticates instead of silently degrading to polling.
  */
 type WsStatus = "connecting" | "open" | "down";
 
@@ -39,6 +44,7 @@ export default function Messages() {
   const mountedRef = useRef(true);
   const activeIdRef = useRef<string | null>(null);
   const retryRef = useRef(0);
+  const retriedAfterAuth = useRef(false);
 
   activeIdRef.current = activeId;
 
@@ -76,8 +82,20 @@ export default function Messages() {
     let socket: WebSocket | null = null;
     let retryTimer: number | undefined;
     let gaveUp = false;
+    retriedAfterAuth.current = false;
 
     const connect = () => {
+      // Reconnects reuse this closure, so always take a fresh token: the
+      // stored access may have expired while we were disconnected. SimpleJWT
+      // access tokens are short-lived; refresh (single-flight, shared with
+      // the axios layer) when missing or nearly expired.
+      void refreshIfExpiring().then((ok) => {
+        if (!ok || !mountedRef.current || activeIdRef.current !== activeId) return;
+        openSocket();
+      });
+    };
+
+    const openSocket = () => {
       const token = tokenStore.access;
       if (!token || !mountedRef.current || activeIdRef.current !== activeId) return;
       const proto = window.location.protocol === "https:" ? "wss" : "ws";
@@ -113,8 +131,25 @@ export default function Messages() {
         socketRef.current = null;
         if (!mountedRef.current || gaveUp || activeIdRef.current !== activeId) return;
         setWsStatus("down");
-        // 4403 = not a participant / bad token — don't hammer the server.
-        if (event.code === 4403 || retryRef.current >= 3) {
+        // 4403 = unauthorized. Most commonly a token that expired between
+        // connects (long-lived tab): force one refresh-authenticated retry
+        // before treating it as a real "not a participant" rejection.
+        if (event.code === 4403) {
+          if (retriedAfterAuth.current) {
+            gaveUp = true;
+            return;
+          }
+          retriedAfterAuth.current = true;
+          void refreshAccessToken().then((ok) => {
+            if (ok && mountedRef.current && activeIdRef.current === activeId) {
+              retryTimer = window.setTimeout(openSocket, 250);
+            } else {
+              gaveUp = true;
+            }
+          });
+          return;
+        }
+        if (retryRef.current >= 3) {
           gaveUp = true;
           return;
         }

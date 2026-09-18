@@ -96,9 +96,45 @@ api.interceptors.request.use((config) => {
 /* --- single-flight refresh ------------------------------------------------
  * When a 401 arrives, one refresh request runs; all other 401s wait on the
  * same promise and are replayed with the fresh token. A failed refresh
- * clears the session for everyone waiting.
+ * clears the session for everyone waiting. The chat WebSocket uses
+ * refreshAccessToken() directly (WebSocket has no interceptor to lean on),
+ * and refreshIfExpiring() pre-flights the token before a reconnect so a
+ * long-lived session re-authenticates instead of silently degrading.
  */
 let refreshInFlight: Promise<boolean> | null = null;
+
+function decodeJwtExp(token: string): number | null {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]!.replace(/-/g, "+").replace(/_/g, "/"))) as { exp?: number };
+    return typeof payload.exp === "number" ? payload.exp : null;
+  } catch {
+    return null; // malformed token — let the server be the judge
+  }
+}
+
+/** True when the stored access token is missing or expires within `leeway` seconds. */
+export function tokenNeedsRefresh(leeway = 30): boolean {
+  const access = tokenStore.access;
+  if (!access) return true;
+  const exp = decodeJwtExp(access);
+  return exp === null || exp * 1000 <= Date.now() + leeway * 1000;
+}
+
+/** Kick (or join) the single-flight refresh; resolves to whether it succeeded. */
+export function refreshAccessToken(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = doRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+/** Refresh only if the stored access token is missing/nearly expired. */
+export function refreshIfExpiring(leeway = 30): Promise<boolean> {
+  if (!tokenNeedsRefresh(leeway)) return Promise.resolve(true);
+  return refreshAccessToken();
+}
 
 async function doRefresh(): Promise<boolean> {
   const refresh = tokenStore.refresh;
@@ -130,12 +166,7 @@ api.interceptors.response.use(
 
     if (status === 401 && original && !original._retried && tokenStore.refresh) {
       original._retried = true;
-      if (!refreshInFlight) {
-        refreshInFlight = doRefresh().finally(() => {
-          refreshInFlight = null;
-        });
-      }
-      const ok = await refreshInFlight;
+      const ok = await refreshAccessToken();
       if (ok) {
         original.headers = { ...original.headers, Authorization: `Bearer ${tokenStore.access}` };
         return api.request(original);
