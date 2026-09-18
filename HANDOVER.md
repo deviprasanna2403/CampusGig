@@ -1,6 +1,6 @@
 # CampusGig — Platform Handover Document
 
-**Date:** 2026-09-18 · **Branch:** `main` · **HEAD:** `56f1495` (radius_km ceiling) · Audit originally executed at `98650f8`, refreshed through the F6 series and the WebSocket chat milestone
+**Date:** 2026-09-18 · **Branch:** `main` · **HEAD:** `b91eba7` (Vitest + chat socket unit tests) · Audit originally executed at `98650f8`, refreshed through the F6 series, the WebSocket chat milestone, and the frontend test framework
 **Audit scope:** full read-only end-to-end quality audit of backend (Phases 1–13) and frontend (F1–F5), with live verification runs.
 
 ---
@@ -16,8 +16,9 @@ CampusGig is a campus jobs marketplace: businesses post part-time gigs near camp
 | Deployment (Docker Compose, CI, prod settings) | **Complete — Phase 13** |
 | Backend tests | **237/237 passing** (205 at audit + 7 F6 serializer + 20 F6 polish/visibility + 4 chat real-time/contract + 1 radius-ceiling test) |
 | Frontend typecheck + production build | **Clean** (verified through the WS milestone; ~447 kB JS / ~132 kB gzip) |
+| Frontend unit tests | **14/14 passing** (Vitest + jsdom; chat socket state machine + token refresh layer, wired into CI) |
 
-Git history (oldest → newest): `bbae32e` 9A verification lifecycle → `a651c1a` 9B analytics & audit → `dd3363e` F1 → `59e9c48` F2 → `df71eab` F3 → `96f4503` F4 → `b43a054` F5 → `98650f8` Phase 13 → `a198541` Vite proxy env override → `d71f630` F6 Reviews UI → `1ff7b92` handover refresh → `882ecbe` F6 polish (interview times, report takedown, review moderation) → `f89a9a4` student report button → `b358b71` taken-down notice → `ee7b377` handover refresh (trust-loop completion) → `45668a1` WebSocket chat adoption + shared REST/WS broadcast → `7583ccb` broadcast contract test → `3c6ff96` socket token re-auth → `035ba1b` restart resilience (ping/pong liveness, CONNECTING timeout, self-heal heartbeat) → `8a4ea27` ping/pong liveness contract test. Working tree is clean except the intentionally untracked `backend/smoke_test_phase9b.py` and `.freebuff/` (local agent run notes + preview run doc).
+Git history (oldest → newest): `bbae32e` 9A verification lifecycle → `a651c1a` 9B analytics & audit → `dd3363e` F1 → `59e9c48` F2 → `df71eab` F3 → `96f4503` F4 → `b43a054` F5 → `98650f8` Phase 13 → `a198541` Vite proxy env override → `d71f630` F6 Reviews UI → `1ff7b92` handover refresh → `882ecbe` F6 polish (interview times, report takedown, review moderation) → `f89a9a4` student report button → `b358b71` taken-down notice → `ee7b377` handover refresh (trust-loop completion) → `45668a1` WebSocket chat adoption + shared REST/WS broadcast → `7583ccb` broadcast contract test → `3c6ff96` socket token re-auth → `035ba1b` restart resilience (ping/pong liveness, CONNECTING timeout, self-heal heartbeat) → `8a4ea27` ping/pong liveness contract test → `3224704` retire resolved JobCategory gap → `56f1495` radius_km 50 km ceiling → `af7438b` handover: no functional gaps remain → `b91eba7` Vitest + chat socket unit tests in CI. Working tree is clean except the intentionally untracked `backend/smoke_test_phase9b.py` and `.freebuff/` (local agent run notes + preview run doc).
 
 ---
 
@@ -31,6 +32,7 @@ Git history (oldest → newest): `bbae32e` 9A verification lifecycle → `a651c1
 | Django deploy check | `manage.py check --deploy --settings=config.settings.prod` | Only pre-existing cosmetic drf-spectacular warnings (serializer type-hints, enum-name collisions, 5 APIViews without serializer_class) + expected W009 from the short audit secret. **No security findings.** |
 | Backend test suite | `pytest apps/…` (all 11 apps) | **237 passing** (236 at the WS milestone + the radius-ceiling boundary test; jobs suite 20/20 re-run after the cap) |
 | Frontend typecheck + build | `npm run build` (runs `tsc -b && vite build`) | Clean through the WS milestone: `dist/assets/index-*.js` ~447 kB (gzip ~132 kB) — growth from the socket client + resilience logic |
+| Frontend unit tests | `npm test` (Vitest, jsdom) | **14 passing** (6 socket state machine + 8 client refresh-layer tests, ~8s) |
 | Dead-code scan | grep for TODO/FIXME/XXX/HACK across backend + frontend | **None found** |
 | Repo hygiene | `git status` | Clean; no junk (caches/venv/logs/`.env`) tracked; smoke script untracked as intended |
 
@@ -131,8 +133,8 @@ campusgig_phase4_fixed/
 ## 7. Testing & CI
 
 - **Backend:** 237 tests across 22 files — models, permissions, views, serializers, regressions (application validation, interview transitions), health, analytics, audit, phases 7/8/9, F6 review-serializer contracts, F6 polish (interview-time formatting, report takedown incl. idempotency/dangling-target/notification-failure cases, review moderation incl. audit trail, duplicate-report suppression, history-scoped job visibility + viewer_has_history), chat real-time contracts (consumer send/receive, REST-created messages broadcast to the group with exactly-one-event uniqueness, ping→pong liveness shape), and the radius_km ceiling boundary test. The communication WS fixture uses `get_or_create` for `JobCategory` so `TransactionTestCase` ordering can't flake it. Suite takes ~11 min on the dev machine (heavy PostGIS/point setup dominates).
-- **Frontend:** verification is `tsc -b` + production build + live E2E (per-phase manual E2E was performed through F1–F6 in the running app, and the WebSocket chat milestone was verified live: cross-client delivery over the socket, forged-expired-token re-auth self-healing, and a backend-restart simulation with the thread open — honest degraded state, then auto-recovery with no user action). No JS unit-test framework is installed (deliberate — consistent with F1–F5; see §11).
-- **CI** (`.github/workflows/ci.yml`): backend job — PostGIS + Redis service containers, GeoDjango system libs, dev requirements, `manage.py check` + prod-settings check + full pytest; frontend job — `npm ci`, `tsc -b`, build. Not yet exercised (no remote with Actions configured).
+- **Frontend:** three verification layers — **unit tests** (Vitest + jsdom, `npm test`: 6 tests pin the Messages socket state machine — connect URL + live chip, token pre-flight gating, one 4403 refresh-retry then permanent give-up, ping/pong zombie detection, self-heal heartbeat after fast retries exhaust, CONNECTING-timeout REST fallback — plus 8 tests for the `client.ts` refresh layer; all timer-driven behavior under fake timers with a scripted `FakeWebSocket` double in `src/test/setup.ts`), **typecheck + production build**, and **live E2E** (per-phase manual E2E through F1–F6, and the WebSocket milestone verified live: cross-client delivery, forged-expired-token re-auth self-healing, and a backend-restart simulation with the thread open). The FakeWebSocket double exposed two stub bugs worth knowing: `Object.assign` copies getter *values* (a statically assigned `last` froze at `undefined`), and a stub `close()` must fire `onclose` or the component's own CONNECTING-timeout close is invisible to its state machine.
+- **CI** (`.github/workflows/ci.yml`): backend job — PostGIS + Redis service containers, GeoDjango system libs, dev requirements, `manage.py check` + prod-settings check + full pytest; frontend job — `npm ci`, `tsc -b`, **`npm test` (Vitest)**, production build. Not yet exercised (no remote with Actions configured).
 
 ---
 
@@ -196,8 +198,9 @@ docker compose up --build
 ## 11. Recommended roadmap (do NOT treat as committed scope)
 
 **Next features (in suggested order):**
-1. **Frontend unit tests** (Vitest for `client.ts` refresh logic, auth context, and the chat socket state machine), wired into CI.
-2. **Live Docker smoke** on a Docker host; then push repo to enable CI.
+1. **Live Docker smoke** on a Docker host; then push repo to enable CI.
+
+*(Frontend-testing roadmap note: the no-JS-test-framework decision from F1–F5 was reversed post-WebSocket — Vitest shipped in `b91eba7` with the socket state machine and refresh layer under test, wired into CI. Coverage headroom remains in form components.)*
 
 *(WebSocket roadmap note: chat adoption shipped across `45668a1`, `7583ccb`, `3c6ff96`, `035ba1b`, and `8a4ea27` — socket-backed Messages with polling fallback, shared REST/WS broadcast, token re-auth, restart resilience, and contract tests for the consumer, broadcast, and ping/pong liveness. This closed the last §10 chat gap.)*
 
@@ -210,7 +213,7 @@ docker compose up --build
 - [ ] Read `backend/docs/PHASE4_API.md` → `PHASE13_DEPLOY.md` (each phase documents endpoints, permissions, validation, known gaps)
 - [ ] Interactive docs: run the backend and open `http://127.0.0.1:8000/api/v1/docs/`
 - [ ] Run the backend suite before/after any change: `pytest apps -q` (expect 237 passing)
-- [ ] Frontend: `npm run build` must stay green; `oxlint` available via `npm run lint`
+- [ ] Frontend: `npm run build` must stay green; `npm test` (Vitest, expect 14 passing) and `npm run lint` (oxlint) too
 - [ ] Never edit generated migrations by hand; `makemigrations --check` must stay clean in CI
 - [ ] Secrets only via `.env` (root for compose, `backend/.env` for local dev) — templates provided, real `.env` files are git-ignored
 - [ ] Audit-relevant state changes must go through `AuditService.log()` (search `apps/core` for the service and existing call sites)
