@@ -6,6 +6,7 @@ file should be environment-specific except by way of an environment
 variable read through django-environ.
 """
 
+import os
 from pathlib import Path
 
 import environ
@@ -173,13 +174,20 @@ MAX_DISCOVERY_RADIUS_KM = env.int("MAX_DISCOVERY_RADIUS_KM", default=50)
 # the system libraries are installed. On some Windows/macOS setups the
 # auto-detection fails and these must be set explicitly to the library
 # file paths. Leave both unset (None) on Linux/Docker.
+#
+# The Windows defaults apply ONLY on Windows: hardcoding them as global
+# defaults leaked the host paths into Linux containers, where GeoDjango
+# crashed at import trying to dlopen a literal "C:\..." path (caught by the
+# Docker smoke run). An env var still overrides the default on any OS.
+_WINDOWS_GDAL = r"C:\Program Files\PostgreSQL\16\bin\libgdal-35.dll"
+_WINDOWS_GEOS = r"C:\Program Files\PostgreSQL\16\bin\libgeos_c.dll"
 GDAL_LIBRARY_PATH = env(
     "GDAL_LIBRARY_PATH",
-    default=r"C:\Program Files\PostgreSQL\16\bin\libgdal-35.dll",
+    default=_WINDOWS_GDAL if os.name == "nt" else None,
 )
 GEOS_LIBRARY_PATH = env(
     "GEOS_LIBRARY_PATH",
-    default=r"C:\Program Files\PostgreSQL\16\bin\libgeos_c.dll",
+    default=_WINDOWS_GEOS if os.name == "nt" else None,
 )
 
 # ---------------------------------------------------------------------------

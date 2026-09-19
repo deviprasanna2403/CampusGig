@@ -198,7 +198,7 @@ docker compose up --build
 ## 11. Recommended roadmap (do NOT treat as committed scope)
 
 **Next features (in suggested order):**
-1. **Live Docker smoke** on a Docker host; then push repo to enable CI.
+1. ~~Live Docker smoke~~ — **Done 2026-09-19** (see commit history): full `docker compose up --build` run verified on Docker Desktop (engine 29.8). Two fixes shipped: the backend Dockerfile pins both stages to `python:3.12-slim-bookworm` (the floating tag moved to Debian trixie where `libgdal32` no longer exists — soname bumped to `libgdal36` — which broke the apt layer with exit 100), and GDAL/GEOS library-path settings now only default to the Windows PostgreSQL DLL paths on Windows (`os.name == "nt"`), not globally (the global defaults crashed GeoDjango at container import trying to dlopen a literal `C:\...` path). Verified live: all 6 containers up, db/redis healthy, migrations run, Daphne serving, `/api/v1/schema/` returns 200 through the containerized prod settings, SPA served by nginx (200), proxy path working end to end (prod's `SECURE_SSL_REDIRECT` 301s are the expected TLS posture in the TLS-less smoke). Remaining: CI push still needs a remote.
 
 *(Frontend-testing roadmap note: the no-JS-test-framework decision from F1–F5 was reversed post-WebSocket — Vitest shipped in `b91eba7` with the socket state machine and refresh layer under test, wired into CI. Coverage headroom remains in form components.)*
 

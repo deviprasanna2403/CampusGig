@@ -1,5 +1,10 @@
 # ---- Stage 1: build wheels -------------------------------------------------
-FROM python:3.12-slim AS builder
+# Pinned to -bookworm: the floating python:3.12-slim tag moved from Debian
+# bookworm to trixie, where GDAL's soname bumped (libgdal32 -> libgdal36) and
+# the runtime apt list below stopped resolving. Pinning the distro keeps the
+# package names valid and the build reproducible; bump the tag deliberately
+# (adjusting libgdal/libgeos/libproj sonames) when a base upgrade is wanted.
+FROM python:3.12-slim-bookworm AS builder
 
 ENV PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1
@@ -16,7 +21,7 @@ COPY requirements/ requirements/
 RUN pip wheel --wheel-dir /wheels -r requirements/base.txt
 
 # ---- Stage 2: runtime --------------------------------------------------------
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
