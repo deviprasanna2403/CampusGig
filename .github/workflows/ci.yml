@@ -55,7 +55,7 @@ jobs:
       - name: Install system deps (GeoDjango)
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libgdal32 libgeos-c1v5 libproj25
+          sudo apt-get install -y --no-install-recommends  libgeos-c1v5 libproj25
 
       - name: Install Python deps
         run: |
